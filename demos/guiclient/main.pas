@@ -350,10 +350,13 @@ end;
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   // avoid AV when closing application
-  crm.Load('about:blank');
-  debug.Load('about:blank');
-  while debug.Browser.IsLoading or crm.Browser.IsLoading  do
-    Application.ProcessMessages;
+  if CefSingleProcess then
+  begin
+    crm.Load('about:blank');
+    debug.Load('about:blank');
+    while debug.Browser.IsLoading or crm.Browser.IsLoading  do
+      Application.ProcessMessages;
+  end;
   CanClose := True;
 end;
 
