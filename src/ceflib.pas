@@ -5400,7 +5400,7 @@ type
     function CanSetCookie(const cookie: PCefCookie): Boolean; virtual;
     procedure Cancel; virtual;
   public
-    constructor Create(SyncMainThread: Boolean; const browser: ICefBrowser; const frame: ICefFrame;
+    constructor Create(const browser: ICefBrowser; const frame: ICefFrame;
       const schemeName: ustring; const request: ICefRequest); virtual;
   end;
   TCefResourceHandlerClass = class of TCefResourceHandlerOwn;
@@ -5408,7 +5408,6 @@ type
   TCefSchemeHandlerFactoryOwn = class(TCefBaseOwn, ICefSchemeHandlerFactory)
   private
     FClass: TCefResourceHandlerClass;
-    FSyncMainThread: Boolean;
   protected
     function New(const browser: ICefBrowser; const frame: ICefFrame;
       const schemeName: ustring; const request: ICefRequest): ICefResourceHandler; virtual;
@@ -13304,8 +13303,8 @@ begin
   Result := False;
 end;
 
-constructor TCefResourceHandlerOwn.Create(SyncMainThread: Boolean;
-  const browser: ICefBrowser; const frame: ICefFrame; const schemeName: ustring;
+constructor TCefResourceHandlerOwn.Create(const browser: ICefBrowser;
+  const frame: ICefFrame; const schemeName: ustring;
   const request: ICefRequest);
 begin
   inherited CreateData(SizeOf(TCefResourceHandler));
@@ -13346,7 +13345,6 @@ constructor TCefSchemeHandlerFactoryOwn.Create(
   const AClass: TCefResourceHandlerClass; SyncMainThread: Boolean);
 begin
   inherited CreateData(SizeOf(TCefSchemeHandlerFactory));
-  FSyncMainThread := SyncMainThread;
   FClass := AClass;
   with PCefSchemeHandlerFactory(FData)^ do
     create := cef_scheme_handler_factory_create;
@@ -13356,7 +13354,7 @@ function TCefSchemeHandlerFactoryOwn.New(const browser: ICefBrowser;
   const frame: ICefFrame; const schemeName: ustring;
   const request: ICefRequest): ICefResourceHandler;
 begin
-  Result := FClass.Create(FSyncMainThread, browser, frame, schemeName, request);
+  Result := FClass.Create(browser, frame, schemeName, request);
 end;
 
 { TCefCallbackRef }

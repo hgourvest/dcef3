@@ -42,7 +42,7 @@ type
       var bytesRead: Integer; const callback: ICefCallback): Boolean; override;
 
   public
-    constructor Create(SyncMainThread: Boolean; const browser: ICefBrowser; const frame: ICefFrame;
+    constructor Create(const browser: ICefBrowser; const frame: ICefFrame;
       const schemeName: ustring; const request: ICefRequest); override;
     destructor Destroy; override;
   end;
@@ -242,7 +242,7 @@ end;
 
 { TFileScheme }
 
-constructor TFileScheme.Create(SyncMainThread: Boolean; const browser: ICefBrowser; const frame: ICefFrame;
+constructor TFileScheme.Create(const browser: ICefBrowser; const frame: ICefFrame;
   const schemeName: ustring; const request: ICefRequest);
 begin
   inherited;
