@@ -352,6 +352,5 @@ BEGIN
 	System_SysConst_SOverflow,	L"D\x00e9bordement en virgule flottante"
 END
 
-/* c:\program files (x86)\embarcadero\rad studio\9.0\lib\Win32\release\WindowsXP.res */
 /* C:\Users\henri\Dropbox\dev\dcef3\demos\filescheme\ceffilescheme.res */
 /* C:\Users\henri\Dropbox\dev\dcef3\demos\cefclient\cefclient.drf */

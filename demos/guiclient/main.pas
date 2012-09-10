@@ -25,8 +25,6 @@ type
     mGetText: TMenuItem;
     actGetSource: TAction;
     actGetText: TAction;
-    Showdevtools1: TMenuItem;
-    Closedeveloppertools1: TMenuItem;
     actZoomIn: TAction;
     actZoomOut: TAction;
     actZoomReset: TAction;
@@ -91,10 +89,20 @@ type
     procedure actDevToolExecute(Sender: TObject);
     procedure actDocExecute(Sender: TObject);
     procedure actGroupExecute(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
     { Déclarations privées }
     FLoading: Boolean;
     function IsMain(const b: ICefBrowser; const f: ICefFrame = nil): Boolean;
+  end;
+
+  TCustomRenderProcessHandler = class(TCefRenderProcessHandlerOwn)
+  protected
+    procedure OnWebKitInitialized; override;
+  end;
+
+  TTestExtension = class
+    class function hello: string;
   end;
 
 var
@@ -339,9 +347,38 @@ begin
   Close;
 end;
 
+procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  // avoid AV when closing application
+  crm.Load('about:blank');
+  debug.Load('about:blank');
+  while debug.Browser.IsLoading or crm.Browser.IsLoading  do
+    Application.ProcessMessages;
+  CanClose := True;
+end;
+
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FLoading := False;
 end;
 
+{ TCustomRenderProcessHandler }
+
+procedure TCustomRenderProcessHandler.OnWebKitInitialized;
+begin
+{$IFDEF DELPHI14_UP}
+  TCefRTTIExtension.Register('app', TTestExtension);
+{$ENDIF}
+end;
+
+{ TTestExtension }
+
+class function TTestExtension.hello: string;
+begin
+  Result := 'Hello from Delphi';
+end;
+
+initialization
+  CefRemoteDebuggingPort := 9000;
+  CefRenderProcessHandler := TCustomRenderProcessHandler.Create;
 end.

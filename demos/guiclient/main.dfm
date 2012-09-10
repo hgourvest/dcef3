@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 276
   Top = 194
-  Width = 880
-  Height = 710
   Caption = 'Chromium Embedded'
+  ClientHeight = 652
+  ClientWidth = 864
   Color = clBtnFace
   TransparentColor = True
   TransparentColorValue = clFuchsia
@@ -14,6 +14,7 @@ object MainForm: TMainForm
   Font.Style = []
   Menu = MainMenu
   OldCreateOrder = False
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
@@ -229,12 +230,6 @@ object MainForm: TMainForm
       end
       object Zoomreset1: TMenuItem
         Action = actZoomReset
-      end
-      object Showdevtools1: TMenuItem
-        Caption = 'Show developper tools'
-      end
-      object Closedeveloppertools1: TMenuItem
-        Caption = 'Close developper tools'
       end
       object actFileScheme1: TMenuItem
         Action = actFileScheme
