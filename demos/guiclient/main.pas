@@ -90,6 +90,10 @@ type
     procedure actDocExecute(Sender: TObject);
     procedure actGroupExecute(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure crmBeforePopup(Sender: TObject; const parentBrowser: ICefBrowser;
+      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+      var url: ustring; var client: ICefClient;
+      var settings: TCefBrowserSettings; out Result: Boolean);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -298,6 +302,16 @@ procedure TMainForm.crmAddressChange(Sender: TObject;
 begin
   if IsMain(browser, frame) then
     edAddress.Text := url;
+end;
+
+procedure TMainForm.crmBeforePopup(Sender: TObject;
+  const parentBrowser: ICefBrowser; var popupFeatures: TCefPopupFeatures;
+  var windowInfo: TCefWindowInfo; var url: ustring; var client: ICefClient;
+  var settings: TCefBrowserSettings; out Result: Boolean);
+begin
+  // prevent popup
+  crm.Load(url);
+  Result := True;
 end;
 
 procedure TMainForm.crmLoadEnd(Sender: TObject; const browser: ICefBrowser;
