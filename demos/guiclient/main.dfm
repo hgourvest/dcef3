@@ -40,6 +40,8 @@ object MainForm: TMainForm
     OnAddressChange = crmAddressChange
     OnTitleChange = crmTitleChange
     OnStatusMessage = crmStatusMessage
+    OnBeforeDownload = crmBeforeDownload
+    OnDownloadUpdated = crmDownloadUpdated
     OnBeforePopup = crmBeforePopup
     Options.AcceleratedCompositingDisabled = False
     Options.AcceleratedPaintingEnabled = False

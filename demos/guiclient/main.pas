@@ -94,6 +94,12 @@ type
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var url: ustring; var client: ICefClient;
       var settings: TCefBrowserSettings; out Result: Boolean);
+    procedure crmBeforeDownload(Sender: TObject; const browser: ICefBrowser;
+      const downloadItem: ICefDownloadItem; const suggestedName: ustring;
+      const callback: ICefBeforeDownloadCallback);
+    procedure crmDownloadUpdated(Sender: TObject; const browser: ICefBrowser;
+      const downloadItem: ICefDownloadItem;
+      const callback: ICefDownloadItemCallback);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -113,6 +119,7 @@ var
   MainForm: TMainForm;
 
 implementation
+uses shlobj;
 
 {$R *.dfm}
 
@@ -304,6 +311,13 @@ begin
     edAddress.Text := url;
 end;
 
+procedure TMainForm.crmBeforeDownload(Sender: TObject;
+  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const suggestedName: ustring; const callback: ICefBeforeDownloadCallback);
+begin
+  callback.Cont(ExtractFilePath(ParamStr(0)) + suggestedName, True);
+end;
+
 procedure TMainForm.crmBeforePopup(Sender: TObject;
   const parentBrowser: ICefBrowser; var popupFeatures: TCefPopupFeatures;
   var windowInfo: TCefWindowInfo; var url: ustring; var client: ICefClient;
@@ -312,6 +326,15 @@ begin
   // prevent popup
   crm.Load(url);
   Result := True;
+end;
+
+procedure TMainForm.crmDownloadUpdated(Sender: TObject;
+  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const callback: ICefDownloadItemCallback);
+begin
+  if downloadItem.IsInProgress then
+    StatusBar.SimpleText := IntToStr(downloadItem.PercentComplete) + '%' else
+    StatusBar.SimpleText := '';
 end;
 
 procedure TMainForm.crmLoadEnd(Sender: TObject; const browser: ICefBrowser;
