@@ -119,7 +119,6 @@ var
   MainForm: TMainForm;
 
 implementation
-uses shlobj;
 
 {$R *.dfm}
 
