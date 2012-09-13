@@ -4002,6 +4002,8 @@ type
     function Copy: ICefProcessMessage;
     function GetName: ustring;
     function GetArgumentList: ICefListValue;
+    property Name: ustring read GetName;
+    property ArgumentList: ICefListValue read GetArgumentList;
   end;
 
   ICefBrowser = interface(ICefBase)

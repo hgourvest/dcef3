@@ -100,6 +100,9 @@ type
     procedure crmDownloadUpdated(Sender: TObject; const browser: ICefBrowser;
       const downloadItem: ICefDownloadItem;
       const callback: ICefDownloadItemCallback);
+    procedure crmProcessMessageReceived(Sender: TObject;
+      const browser: ICefBrowser; sourceProcess: TCefProcessId;
+      const message: ICefProcessMessage; out Result: Boolean);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -109,6 +112,9 @@ type
   TCustomRenderProcessHandler = class(TCefRenderProcessHandlerOwn)
   protected
     procedure OnWebKitInitialized; override;
+    function OnProcessMessageReceived(const browser: ICefBrowser;
+      sourceProcess: TCefProcessId; const message: ICefProcessMessage): Boolean;
+      override;
   end;
 
   TTestExtension = class
@@ -121,25 +127,6 @@ var
 implementation
 
 {$R *.dfm}
-
-function getpath(const n: ICefDomNode): string;
-begin
-  Result := '<' + n.Name + '>';
-  if (n.Parent <> nil) then
-    Result := getpath(n.Parent) + Result;
-end;
-
-{$IFNDEF DELPHI12_UP}
-procedure mouseeventcallback(const event: ICefDomEvent);
-begin
-  MainForm.caption := getpath(event.Target);
-end;
-
-procedure domvisitorcallback(const doc: ICefDomDocument);
-begin
-  doc.Body.AddEventListenerProc('mouseover', True, mouseeventcallback);
-end;
-{$ENDIF}
 
 procedure TMainForm.actDevToolExecute(Sender: TObject);
 begin
@@ -158,17 +145,8 @@ end;
 
 procedure TMainForm.actDomExecute(Sender: TObject);
 begin
-{$IFDEF DELPHI12_UP}
-  crm.Browser.MainFrame.VisitDomProc(
-    procedure(const doc: ICefDomDocument) begin
-      doc.Body.AddEventListenerProc('mouseover', True,
-        procedure (const event: ICefDomEvent) begin
-          caption := getpath(event.Target);
-        end)
-  end);
-{$ELSE}
-  crm.Browser.MainFrame.VisitDomProc(domvisitorcallback);
-{$ENDIF}
+  crm.browser.SendProcessMessage(PID_RENDERER,
+    TCefProcessMessageRef.New('visitdom'));
 end;
 
 procedure TMainForm.actExecuteJSExecute(Sender: TObject);
@@ -350,6 +328,18 @@ begin
     FLoading := True;
 end;
 
+procedure TMainForm.crmProcessMessageReceived(Sender: TObject;
+  const browser: ICefBrowser; sourceProcess: TCefProcessId;
+  const message: ICefProcessMessage; out Result: Boolean);
+begin
+  if (message.Name = 'mouseover') then
+  begin
+    StatusBar.SimpleText := message.ArgumentList.GetString(0);
+    Result := True;
+  end else
+    Result := False;
+end;
+
 procedure TMainForm.crmStatusMessage(Sender: TObject;
   const browser: ICefBrowser; const value: ustring;
   statusType: TCefHandlerStatusType);
@@ -402,6 +392,40 @@ begin
 end;
 
 { TCustomRenderProcessHandler }
+
+
+function getpath(const n: ICefDomNode): string;
+begin
+  Result := '<' + n.Name + '>';
+  if (n.Parent <> nil) then
+    Result := getpath(n.Parent) + Result;
+end;
+
+function TCustomRenderProcessHandler.OnProcessMessageReceived(
+  const browser: ICefBrowser; sourceProcess: TCefProcessId;
+  const message: ICefProcessMessage): Boolean;
+begin
+{$IFDEF DELPHI14_UP}
+  if (message.Name = 'visitdom') then
+    begin
+      browser.MainFrame.VisitDomProc(
+        procedure(const doc: ICefDomDocument) begin
+          doc.Body.AddEventListenerProc('mouseover', True,
+            procedure (const event: ICefDomEvent)
+            var
+              msg: ICefProcessMessage;
+            begin
+              msg := TCefProcessMessageRef.New('mouseover');
+              msg.ArgumentList.SetString(0, getpath(event.Target));
+              browser.SendProcessMessage(PID_BROWSER, msg);
+            end)
+        end);
+        Result := True;
+    end
+  else
+{$ENDIF}
+    Result := False;
+end;
 
 procedure TCustomRenderProcessHandler.OnWebKitInitialized;
 begin

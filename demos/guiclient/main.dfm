@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 276
   Top = 194
+  Width = 880
+  Height = 710
   Caption = 'Chromium Embedded'
-  ClientHeight = 652
-  ClientWidth = 864
   Color = clBtnFace
   TransparentColor = True
   TransparentColorValue = clFuchsia
@@ -35,6 +35,7 @@ object MainForm: TMainForm
     Align = alClient
     DefaultUrl = 'http://www.google.com'
     TabOrder = 0
+    OnProcessMessageReceived = crmProcessMessageReceived
     OnLoadStart = crmLoadStart
     OnLoadEnd = crmLoadEnd
     OnAddressChange = crmAddressChange
