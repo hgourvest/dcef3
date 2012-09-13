@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 276
   Top = 194
+  Width = 880
+  Height = 710
   Caption = 'Chromium Embedded'
-  ClientHeight = 652
-  ClientWidth = 864
   Color = clBtnFace
   TransparentColor = True
   TransparentColorValue = clFuchsia
@@ -204,6 +204,10 @@ object MainForm: TMainForm
       Caption = 'Debug in Chrome'
       OnExecute = actChromeDevToolExecute
     end
+    object actProxy: TAction
+      Caption = 'Setup proxy address'
+      OnExecute = actProxyExecute
+    end
   end
   object MainMenu: TMainMenu
     Left = 624
@@ -250,6 +254,9 @@ object MainForm: TMainForm
       end
       object DebuginChrome1: TMenuItem
         Action = actChromeDevTool
+      end
+      object Setupproxyaddress1: TMenuItem
+        Action = actProxy
       end
     end
     object Help1: TMenuItem

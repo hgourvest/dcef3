@@ -4,7 +4,8 @@ uses
   ceflib,
   Forms,
   main in 'main.pas' {MainForm},
-  ceffilescheme in '..\filescheme\ceffilescheme.pas';
+  ceffilescheme in '..\filescheme\ceffilescheme.pas',
+  ProxyForm in 'ProxyForm.pas' {ProxyFormDlg};
 
 {$R *.res}
 
