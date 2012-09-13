@@ -224,7 +224,7 @@ begin
             '/': p^ := '\';
             #0:
 {$IFDEF UNICODE}
-              Exit(HTTPDecode(string(UTF8String(s))));
+              Exit(ustring(HTTPDecode(string(UTF8String(s)))));
 {$ELSE}
               begin
                 Result := UTF8Decode(HTTPDecode(s));
