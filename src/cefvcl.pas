@@ -533,7 +533,7 @@ begin
         Message.Result := 1 else
         inherited WndProc(Message);
     WM_GETDLGCODE:
-      Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS
+      Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS;
   else
     inherited WndProc(Message);
   end;

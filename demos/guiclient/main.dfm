@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 276
   Top = 194
-  Width = 880
-  Height = 710
   Caption = 'Chromium Embedded'
+  ClientHeight = 652
+  ClientWidth = 864
   Color = clBtnFace
   TransparentColor = True
   TransparentColorValue = clFuchsia
@@ -185,7 +185,7 @@ object MainForm: TMainForm
       OnExecute = actDomExecute
     end
     object actDevTool: TAction
-      Caption = 'Developper Tools'
+      Caption = 'Show DevTools'
       OnExecute = actDevToolExecute
     end
     object actDoc: TAction
@@ -199,6 +199,10 @@ object MainForm: TMainForm
     object actFileScheme: TAction
       Caption = 'File Scheme'
       OnExecute = actFileSchemeExecute
+    end
+    object actChromeDevTool: TAction
+      Caption = 'Debug in Chrome'
+      OnExecute = actChromeDevToolExecute
     end
   end
   object MainMenu: TMainMenu
@@ -243,6 +247,9 @@ object MainForm: TMainForm
       end
       object DevelopperTools1: TMenuItem
         Action = actDevTool
+      end
+      object DebuginChrome1: TMenuItem
+        Action = actChromeDevTool
       end
     end
     object Help1: TMenuItem

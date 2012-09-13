@@ -8,7 +8,6 @@ uses
 
 {$R *.res}
 
-
 procedure RegisterSchemes(const registrar: ICefSchemeRegistrar);
 begin
   registrar.AddCustomScheme('local', True, True, False);

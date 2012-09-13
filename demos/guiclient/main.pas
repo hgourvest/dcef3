@@ -6,7 +6,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ceflib, cefvcl, Buttons, ActnList, Menus, ComCtrls,
-  ExtCtrls, XPMan;
+  ExtCtrls, XPMan, Registry, ShellApi;
 
 type
   TMainForm = class(TForm)
@@ -56,6 +56,8 @@ type
     actGroup: TAction;
     Googlegroup1: TMenuItem;
     actFileScheme: TAction;
+    actChromeDevTool: TAction;
+    DebuginChrome1: TMenuItem;
     procedure edAddressKeyPress(Sender: TObject; var Key: Char);
     procedure actPrevExecute(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
@@ -103,6 +105,7 @@ type
     procedure crmProcessMessageReceived(Sender: TObject;
       const browser: ICefBrowser; sourceProcess: TCefProcessId;
       const message: ICefProcessMessage; out Result: Boolean);
+    procedure actChromeDevToolExecute(Sender: TObject);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -127,6 +130,28 @@ var
 implementation
 
 {$R *.dfm}
+
+procedure TMainForm.actChromeDevToolExecute(Sender: TObject);
+var
+  reg: TRegistry;
+  path, url: string;
+begin
+  reg := TRegistry.Create;
+  try
+    reg.RootKey := HKEY_LOCAL_MACHINE;
+    if reg.OpenKeyReadOnly('\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe') then
+      path := ExtractFilePath(reg.ReadString('')) else
+      Exit;
+  finally
+    reg.Free;
+  end;
+
+  if DirectoryExists(path) then
+  begin
+    url := crm.Browser.Host.GetDevToolsUrl(True);
+    ShellExecute(0, 'open', 'chrome.exe', PChar(url), PChar(Path), 0);
+  end;
+end;
 
 procedure TMainForm.actDevToolExecute(Sender: TObject);
 begin
