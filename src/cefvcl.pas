@@ -343,6 +343,7 @@ end;
 constructor TCustomChromium.Create(AOwner: TComponent);
 begin
   inherited;
+  FDefaultUrl := 'about:blank';
 
   if not (csDesigning in ComponentState) then
     FHandler := TVCLClientHandler.Create(Self);

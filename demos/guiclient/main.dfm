@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 276
   Top = 194
-  Width = 880
-  Height = 710
   Caption = 'Chromium Embedded'
+  ClientHeight = 652
+  ClientWidth = 864
   Color = clBtnFace
   TransparentColor = True
   TransparentColorValue = clFuchsia
@@ -63,6 +63,7 @@ object MainForm: TMainForm
     Width = 864
     Height = 201
     Align = alBottom
+    DefaultUrl = 'about:blank'
     TabOrder = 2
     Visible = False
     Options.AcceleratedCompositingDisabled = False
