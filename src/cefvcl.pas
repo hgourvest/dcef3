@@ -542,9 +542,9 @@ end;
 
 function TCustomChromium.doOnClose(const browser: ICefBrowser): Boolean;
 begin
+  Result := False;
   if Assigned(FOnClose) then
-    FOnClose(Self, browser, Result) else
-    Result := False;
+    FOnClose(Self, browser, Result);
 end;
 
 procedure TCustomChromium.doOnAddressChange(const browser: ICefBrowser;
@@ -587,27 +587,27 @@ function TCustomChromium.doOnBeforePopup(const parentBrowser: ICefBrowser;
   var url: ustring; var client: ICefClient;
   var settings: TCefBrowserSettings): Boolean;
 begin
+  Result := False;
   if Assigned(FOnBeforePopup) then
     FOnBeforePopup(Self, parentBrowser, popupFeatures,
-      windowInfo, url, client, settings, Result) else
-    Result := False;
+      windowInfo, url, client, settings, Result);
 end;
 
 function TCustomChromium.doOnBeforeResourceLoad(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest): Boolean;
 begin
+  Result := False;
   if Assigned(FOnBeforeResourceLoad) then
-    FOnBeforeResourceLoad(Self, browser, frame, request, Result) else
-    Result := False;
+    FOnBeforeResourceLoad(Self, browser, frame, request, Result);
 end;
 
 function TCustomChromium.doOnBeforeUnloadDialog(const browser: ICefBrowser;
   const messageText: ustring; isReload: Boolean;
   const callback: ICefJsDialogCallback): Boolean;
 begin
-  if Assigned(FOnBeforeUnloadDialog) then
-    FOnBeforeUnloadDialog(Self, browser, messageText, isReload, callback, Result) else
   Result := False;
+  if Assigned(FOnBeforeUnloadDialog) then
+    FOnBeforeUnloadDialog(Self, browser, messageText, isReload, callback, Result);
 end;
 
 procedure TCustomChromium.doOnCancelGeolocationPermission(
@@ -620,18 +620,18 @@ end;
 function TCustomChromium.doOnConsoleMessage(const browser: ICefBrowser;
   const message, source: ustring; line: Integer): Boolean;
 begin
+  Result := False;
   if Assigned(FOnConsoleMessage) then
-    FOnConsoleMessage(Self, browser, message, source, line, Result) else
-    Result := False;
+    FOnConsoleMessage(Self, browser, message, source, line, Result);
 end;
 
 function TCustomChromium.doOnContextMenuCommand(const browser: ICefBrowser;
   const frame: ICefFrame; const params: ICefContextMenuParams;
   commandId: Integer; eventFlags: TCefEventFlags): Boolean;
 begin
+  Result := False;
   if Assigned(FOnContextMenuCommand) then
-    FOnContextMenuCommand(Self, browser, frame, params, commandId, eventFlags, Result) else
-    Result := False;
+    FOnContextMenuCommand(Self, browser, frame, params, commandId, eventFlags, Result);
 end;
 
 procedure TCustomChromium.doOnContextMenuDismissed(const browser: ICefBrowser;
@@ -653,10 +653,10 @@ function TCustomChromium.doOnGetAuthCredentials(const browser: ICefBrowser;
   const frame: ICefFrame; isProxy: Boolean; const host: ustring; port: Integer;
   const realm, scheme: ustring; const callback: ICefAuthCallback): Boolean;
 begin
+  Result := False;
   if Assigned(FOnGetAuthCredentials) then
     FOnGetAuthCredentials(Self, browser, frame, isProxy, host,
-      port, realm, scheme, callback, Result) else
-    Result := False;
+      port, realm, scheme, callback, Result);
 end;
 
 function TCustomChromium.doOnGetCookieManager(const browser: ICefBrowser;
@@ -686,18 +686,18 @@ function TCustomChromium.doOnJsdialog(const browser: ICefBrowser;
   const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
   out suppressMessage: Boolean): Boolean;
 begin
+  Result := False;
   if Assigned(FOnJsdialog) then
     FOnJsdialog(Self, browser, originUrl, acceptLang, dialogType,
-      messageText, defaultPromptText, callback, suppressMessage, Result) else
-    Result := False;
+      messageText, defaultPromptText, callback, suppressMessage, Result);
 end;
 
 function TCustomChromium.doOnKeyEvent(const browser: ICefBrowser;
   const event: PCefKeyEvent; osEvent: TCefEventHandle): Boolean;
 begin
+  Result := False;
   if Assigned(FOnKeyEvent) then
-    FOnKeyEvent(Self, browser, event, osEvent, Result) else
-    Result := False;
+    FOnKeyEvent(Self, browser, event, osEvent, Result);
 end;
 
 procedure TCustomChromium.doOnLoadEnd(const browser: ICefBrowser;
@@ -740,17 +740,17 @@ function TCustomChromium.doOnPreKeyEvent(const browser: ICefBrowser;
   const event: PCefKeyEvent; osEvent: TCefEventHandle;
   out isKeyboardShortcut: Boolean): Boolean;
 begin
+  Result := False;
   if Assigned(FOnPreKeyEvent) then
-    FOnPreKeyEvent(Self, browser, event, osEvent, isKeyboardShortcut, Result) else
-    Result := False;
+    FOnPreKeyEvent(Self, browser, event, osEvent, isKeyboardShortcut, Result);
 end;
 
 function TCustomChromium.doOnProcessMessageReceived(const browser: ICefBrowser;
   sourceProcess: TCefProcessId; const message: ICefProcessMessage): Boolean;
 begin
+  Result := False;
   if Assigned(FOnProcessMessageReceived) then
-    FOnProcessMessageReceived(Self, browser, sourceProcess, message, Result) else
-    Result := False;
+    FOnProcessMessageReceived(Self, browser, sourceProcess, message, Result);
 end;
 
 procedure TCustomChromium.doOnProtocolExecution(const browser: ICefBrowser;
@@ -791,9 +791,9 @@ end;
 function TCustomChromium.doOnSetFocus(const browser: ICefBrowser;
   source: TCefFocusSource): Boolean;
 begin
+  Result := False;
   if Assigned(FOnSetFocus) then
-    FOnSetFocus(Self, browser, source, Result) else
-    Result := False;
+    FOnSetFocus(Self, browser, source, Result);
 end;
 
 procedure TCustomChromium.doOnStatusMessage(const browser: ICefBrowser;
@@ -820,16 +820,16 @@ end;
 function TCustomChromium.doOnTooltip(const browser: ICefBrowser;
   var text: ustring): Boolean;
 begin
+  Result := False;
   if Assigned(FOnTooltip) then
-    FOnTooltip(Self, browser, text, Result) else
-    Result := False;
+    FOnTooltip(Self, browser, text, Result);
 end;
 
 function TCustomChromium.doOnRunModal(const browser: ICefBrowser): Boolean;
 begin
+  Result := False;
   if Assigned(FOnRunModal) then
-    FOnRunModal(Self, browser, Result) else
-    Result := False;
+    FOnRunModal(Self, browser, Result);
 end;
 
 end.

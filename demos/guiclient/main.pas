@@ -109,6 +109,8 @@ type
       const message: ICefProcessMessage; out Result: Boolean);
     procedure actChromeDevToolExecute(Sender: TObject);
     procedure actProxyExecute(Sender: TObject);
+    procedure crmBeforeResourceLoad(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; const request: ICefRequest; out Result: Boolean);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -367,6 +369,21 @@ begin
   // prevent popup
   crm.Load(url);
   Result := True;
+end;
+
+procedure TMainForm.crmBeforeResourceLoad(Sender: TObject;
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; out Result: Boolean);
+var
+  u: TUrlParts;
+begin
+  // redirect home to google
+  if CefParseUrl(request.Url, u) then
+    if (u.host = 'home') then
+    begin
+      u.host := 'www.google.com';
+      request.Url := CefCreateUrl(u);
+    end;
 end;
 
 procedure TMainForm.crmDownloadUpdated(Sender: TObject;

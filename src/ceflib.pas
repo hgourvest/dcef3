@@ -493,6 +493,17 @@ type
     query: TCefString;
   end;
 
+  TUrlParts = record
+    spec: ustring;
+    scheme: ustring;
+    username: ustring;
+    password: ustring;
+    host: ustring;
+    port: ustring;
+    path: ustring;
+    query: ustring;
+  end;
+
   // Time information. Values should always be in UTC.
   PCefTime = ^TCefTime;
   TCefTime = record
@@ -6227,7 +6238,9 @@ function CefCurrentlyOn(ThreadId: TCefThreadId): Boolean;
 procedure CefPostTask(ThreadId: TCefThreadId; const task: ICefTask);
 procedure CefPostDelayedTask(ThreadId: TCefThreadId; const task: ICefTask; delayMs: Int64);
 function CefGetData(const i: ICefBase): Pointer;
-function CefParseUrl(const url: ustring; var parts: TCefUrlParts): Boolean;
+function CefParseUrl(const url: ustring; var parts: TUrlParts): Boolean;
+function CefCreateUrl(var parts: TUrlParts): string;
+
 procedure CefVisitWebPluginInfo(const visitor: ICefWebPluginInfoVisitor);
 procedure CefVisitWebPluginInfoProc(const visitor: TCefWebPluginInfoVisitorProc);
 function CefGetPath(key: TCefPathKey; out path: ustring): Boolean;
@@ -7318,13 +7331,45 @@ begin
   Result := TObject(PPointer(ptr)^);
 end;
 
-function CefParseUrl(const url: ustring; var parts: TCefUrlParts): Boolean;
+function CefParseUrl(const url: ustring; var parts: TUrlParts): Boolean;
 var
   u: TCefString;
+  p: TCefUrlParts;
 begin
-  FillChar(parts, sizeof(parts), 0);
+  FillChar(p, sizeof(p), 0);
   u := CefString(url);
-  Result := cef_parse_url(@u, parts) <> 0;
+  Result := cef_parse_url(@u, p) <> 0;
+  if Result then
+  begin
+    //parts.spec := CefString(@p.spec);
+    parts.scheme := CefString(@p.scheme);
+    parts.username := CefString(@p.username);
+    parts.password := CefString(@p.password);
+    parts.host := CefString(@p.host);
+    parts.port := CefString(@p.port);
+    parts.path := CefString(@p.path);
+    parts.query := CefString(@p.query);
+  end;
+end;
+
+function CefCreateUrl(var parts: TUrlParts): string;
+var
+  p: TCefUrlParts;
+  u: TCefString;
+begin
+  FillChar(p, sizeof(p), 0);
+  p.spec := CefString(parts.spec);
+  p.scheme := CefString(parts.scheme);
+  p.username := CefString(parts.username);
+  p.password := CefString(parts.password);
+  p.host := CefString(parts.host);
+  p.port := CefString(parts.port);
+  p.path := CefString(parts.path);
+  p.query := CefString(parts.query);
+  FillChar(u, SizeOf(u), 0);
+  if cef_create_url(@p, @u) <> 0 then
+    Result := CefString(@u) else
+    Result := '';
 end;
 
 function CefBrowserHostCreate(windowInfo: PCefWindowInfo; const client: ICefClient;

@@ -44,6 +44,7 @@ object MainForm: TMainForm
     OnBeforeDownload = crmBeforeDownload
     OnDownloadUpdated = crmDownloadUpdated
     OnBeforePopup = crmBeforePopup
+    OnBeforeResourceLoad = crmBeforeResourceLoad
     Options.AcceleratedCompositingDisabled = False
     Options.AcceleratedPaintingEnabled = False
     Options.AcceleratedFiltersEnabled = False
