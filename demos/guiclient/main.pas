@@ -114,6 +114,7 @@ type
   private
     { Déclarations privées }
     FLoading: Boolean;
+    FDevToolLoaded: Boolean;
     function IsMain(const b: ICefBrowser; const f: ICefFrame = nil): Boolean;
   end;
 
@@ -188,8 +189,13 @@ begin
   debug.Visible := actDevTool.Checked;
   Splitter1.Visible := actDevTool.Checked;
   if actDevTool.Checked then
-    debug.Load(crm.Browser.Host.GetDevToolsUrl(True)) else
-    debug.Load('about:blank');
+  begin
+    if not FDevToolLoaded then
+    begin
+      debug.Load(crm.Browser.Host.GetDevToolsUrl(True));
+      FDevToolLoaded := True;
+    end;
+  end;
 end;
 
 procedure TMainForm.actDocExecute(Sender: TObject);
@@ -470,6 +476,7 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FLoading := False;
+  FDevToolLoaded := False;
 end;
 
 { TCustomRenderProcessHandler }
