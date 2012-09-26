@@ -188,6 +188,7 @@ object MainForm: TMainForm
     end
     object actDevTool: TAction
       Caption = 'Show DevTools'
+      ShortCut = 123
       OnExecute = actDevToolExecute
     end
     object actDoc: TAction
