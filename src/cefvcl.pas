@@ -76,8 +76,10 @@ type
     FOnGetResourceHandler: TOnGetResourceHandler;
     FOnResourceRedirect: TOnResourceRedirect;
     FOnGetAuthCredentials: TOnGetAuthCredentials;
+    FOnQuotaRequest: TOnQuotaRequest;
     FOnGetCookieManager: TOnGetCookieManager;
     FOnProtocolExecution: TOnProtocolExecution;
+    FOnBeforePluginLoad: TOnBeforePluginLoad;
 
     FOptions: TChromiumOptions;
     FUserStyleSheetLocation: ustring;
@@ -122,7 +124,7 @@ type
     procedure doOnAddressChange(const browser: ICefBrowser; const frame: ICefFrame; const url: ustring); virtual;
     procedure doOnTitleChange(const browser: ICefBrowser; const title: ustring); virtual;
     function doOnTooltip(const browser: ICefBrowser; var text: ustring): Boolean; virtual;
-    procedure doOnStatusMessage(const browser: ICefBrowser; const value: ustring; statusType: TCefHandlerStatusType); virtual;
+    procedure doOnStatusMessage(const browser: ICefBrowser; const value: ustring); virtual;
     function doOnConsoleMessage(const browser: ICefBrowser; const message, source: ustring; line: Integer): Boolean; virtual;
 
     procedure doOnBeforeDownload(const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
@@ -161,8 +163,11 @@ type
     function doOnGetAuthCredentials(const browser: ICefBrowser; const frame: ICefFrame;
       isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback): Boolean; virtual;
+    function doOnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
+      newSize: Int64; const callback: ICefQuotaCallback): Boolean; virtual;
     function doOnGetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager; virtual;
     procedure doOnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean); virtual;
+    function doOnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; virtual;
 
     property OnProcessMessageReceived: TOnProcessMessageReceived read FOnProcessMessageReceived write FOnProcessMessageReceived;
     property OnLoadStart: TOnLoadStart read FOnLoadStart write FOnLoadStart;
@@ -200,8 +205,10 @@ type
     property OnGetResourceHandler: TOnGetResourceHandler read FOnGetResourceHandler write FOnGetResourceHandler;
     property OnResourceRedirect: TOnResourceRedirect read FOnResourceRedirect write FOnResourceRedirect;
     property OnGetAuthCredentials: TOnGetAuthCredentials read FOnGetAuthCredentials write FOnGetAuthCredentials;
+    property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest write FOnQuotaRequest;
     property OnGetCookieManager: TOnGetCookieManager read FOnGetCookieManager write FOnGetCookieManager;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
+    property OnBeforePluginLoad: TOnBeforePluginLoad read FOnBeforePluginLoad write FOnBeforePluginLoad;
 
     property DefaultUrl: ustring read FDefaultUrl write FDefaultUrl;
     property Options: TChromiumOptions read FOptions write FOptions;
@@ -582,6 +589,14 @@ begin
     FOnBeforeDownload(Self, browser, downloadItem, suggestedName, callback);
 end;
 
+function TCustomChromium.doOnBeforePluginLoad(const browser: ICefBrowser;
+  const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnBeforePluginLoad) then
+    FOnBeforePluginLoad(Self, browser, url, policyUrl, info, Result);
+end;
+
 function TCustomChromium.doOnBeforePopup(const parentBrowser: ICefBrowser;
   var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
   var url: ustring; var client: ICefClient;
@@ -760,6 +775,15 @@ begin
     FOnProtocolExecution(Self, browser, url, allowOsExecution);
 end;
 
+function TCustomChromium.doOnQuotaRequest(const browser: ICefBrowser;
+  const originUrl: ustring; newSize: Int64;
+  const callback: ICefQuotaCallback): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnQuotaRequest) then
+    FOnQuotaRequest(Self, browser, originUrl, newSize, callback, Result);
+end;
+
 procedure TCustomChromium.doOnRenderProcessTerminated(const browser: ICefBrowser;
   status: TCefTerminationStatus);
 begin
@@ -797,10 +821,10 @@ begin
 end;
 
 procedure TCustomChromium.doOnStatusMessage(const browser: ICefBrowser;
-  const value: ustring; statusType: TCefHandlerStatusType);
+  const value: ustring);
 begin
   if Assigned(FOnStatusMessage) then
-    FOnStatusMessage(Self, browser, value, statusType);
+    FOnStatusMessage(Self, browser, value);
 end;
 
 procedure TCustomChromium.doOnTakeFocus(const browser: ICefBrowser;

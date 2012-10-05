@@ -87,7 +87,7 @@ type
     procedure crmLoadStart(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame);
     procedure crmStatusMessage(Sender: TObject; const browser: ICefBrowser;
-      const value: ustring; statusType: TCefHandlerStatusType);
+      const value: ustring);
     procedure crmTitleChange(Sender: TObject; const browser: ICefBrowser;
       const title: ustring);
     procedure actDevToolExecute(Sender: TObject);
@@ -428,12 +428,9 @@ begin
 end;
 
 procedure TMainForm.crmStatusMessage(Sender: TObject;
-  const browser: ICefBrowser; const value: ustring;
-  statusType: TCefHandlerStatusType);
+  const browser: ICefBrowser; const value: ustring);
 begin
-  // http://code.google.com/p/chromiumembedded/issues/detail?id=662
-  if StatusType in [STATUSTYPE_MOUSEOVER_URL, STATUSTYPE_KEYBOARD_FOCUS_URL] then
-    StatusBar.SimpleText := value
+  StatusBar.SimpleText := value
 end;
 
 procedure TMainForm.crmTitleChange(Sender: TObject; const browser: ICefBrowser;
@@ -563,7 +560,7 @@ begin
   try
     if (FProxy <> '') then
     begin
-      proxyType := PROXY_TYPE_NAMED;
+      proxyType := CEF_PROXY_TYPE_NAMED;
       proxyList := FProxy;
     end;
   finally

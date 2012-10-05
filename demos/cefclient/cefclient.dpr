@@ -7,6 +7,11 @@
 program cefclient;
 
 uses
+  madExcept,
+  madLinkDisAsm,
+  madListHardware,
+  madListProcesses,
+  madListModules,
   Classes,
   Windows,
   Messages,
@@ -415,11 +420,11 @@ begin
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
     CefRunMessageLoop;
 {$ELSE}
-  while(GetMessageW(msg, 0, 0, 0)) do
-  begin
-    TranslateMessage(msg);
-    DispatchMessageW(msg);
-  end;
+    while(GetMessageW(msg, 0, 0, 0)) do
+    begin
+      TranslateMessage(msg);
+      DispatchMessageW(msg);
+    end;
 {$ENDIF}
   finally
     handl := nil;

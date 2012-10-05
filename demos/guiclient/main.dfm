@@ -40,7 +40,6 @@ object MainForm: TMainForm
     OnLoadEnd = crmLoadEnd
     OnAddressChange = crmAddressChange
     OnTitleChange = crmTitleChange
-    OnStatusMessage = crmStatusMessage
     OnBeforeDownload = crmBeforeDownload
     OnDownloadUpdated = crmDownloadUpdated
     OnBeforePopup = crmBeforePopup

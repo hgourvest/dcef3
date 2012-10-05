@@ -58,7 +58,7 @@ type
   TOnAddressChange = procedure(Sender: TObject; const browser: ICefBrowser; const frame: ICefFrame; const url: ustring) of object;
   TOnTitleChange = procedure(Sender: TObject; const browser: ICefBrowser; const title: ustring) of object;
   TOnTooltip = procedure(Sender: TObject; const browser: ICefBrowser; var text: ustring; out Result: Boolean) of object;
-  TOnStatusMessage = procedure(Sender: TObject; const browser: ICefBrowser; const value: ustring; kind: TCefHandlerStatusType) of object;
+  TOnStatusMessage = procedure(Sender: TObject; const browser: ICefBrowser; const value: ustring) of object;
   TOnConsoleMessage = procedure(Sender: TObject; const browser: ICefBrowser; const message, source: ustring; line: Integer; out Result: Boolean) of object;
 
   TOnBeforeDownload = procedure(Sender: TObject; const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
@@ -97,9 +97,14 @@ type
   TOnGetAuthCredentials = procedure(Sender: TObject; const browser: ICefBrowser; const frame: ICefFrame;
     isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
     const callback: ICefAuthCallback; out Result: Boolean) of object;
+  TOnQuotaRequest = procedure(Sender: TObject; const browser: ICefBrowser;
+    const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback;
+    out Result: Boolean) of object;
   TOnGetCookieManager = procedure(Sender: TObject; const browser: ICefBrowser; const mainUrl: ustring; out Result: ICefCookieManager) of object;
   TOnProtocolExecution = procedure(Sender: TObject; const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean) of object;
-
+  TOnBeforePluginLoad = procedure(Sender: TObject; const browser: ICefBrowser; const url, policyUrl: ustring; const info: ICefWebPluginInfo; out Result: Boolean) of Object;
+
+
   TChromiumOptions = class(TPersistent)
   private
     FEncodingDetectorEnabled: Boolean;
@@ -235,7 +240,7 @@ type
     procedure doOnAddressChange(const browser: ICefBrowser; const frame: ICefFrame; const url: ustring);
     procedure doOnTitleChange(const browser: ICefBrowser; const title: ustring);
     function doOnTooltip(const browser: ICefBrowser; var text: ustring): Boolean;
-    procedure doOnStatusMessage(const browser: ICefBrowser; const value: ustring; kind: TCefHandlerStatusType);
+    procedure doOnStatusMessage(const browser: ICefBrowser; const value: ustring);
     function doOnConsoleMessage(const browser: ICefBrowser; const message, source: ustring; line: Integer): Boolean;
 
     procedure doOnRequestGeolocationPermission(const browser: ICefBrowser;
@@ -274,8 +279,11 @@ type
     function doOnGetAuthCredentials(const browser: ICefBrowser; const frame: ICefFrame;
       isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback): Boolean;
+    function doOnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
+      newSize: Int64; const callback: ICefQuotaCallback): Boolean;
     function doOnGetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager;
     procedure doOnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean);
+    function doOnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean;
   end;
 
   ICefClientHandler = interface
@@ -375,7 +383,7 @@ type
     procedure OnAddressChange(const browser: ICefBrowser; const frame: ICefFrame; const url: ustring); override;
     procedure OnTitleChange(const browser: ICefBrowser; const title: ustring); override;
     function OnTooltip(const browser: ICefBrowser; var text: ustring): Boolean; override;
-    procedure OnStatusMessage(const browser: ICefBrowser; const value: ustring; kind: TCefHandlerStatusType); override;
+    procedure OnStatusMessage(const browser: ICefBrowser; const value: ustring); override;
     function OnConsoleMessage(const browser: ICefBrowser; const message, source: ustring; line: Integer): Boolean; override;
   public
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
@@ -449,8 +457,12 @@ type
     function GetAuthCredentials(const browser: ICefBrowser; const frame: ICefFrame;
       isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback): Boolean; override;
+    function OnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
+      newSize: Int64; const callback: ICefQuotaCallback): Boolean; override;
     function GetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager; override;
     procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean); override;
+    function OnBeforePluginLoad(const browser: ICefBrowser; const url: ustring;
+      const policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; override;
   public
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
   end;
@@ -706,9 +718,9 @@ begin
 end;
 
 procedure TCustomDisplayHandler.OnStatusMessage(const browser: ICefBrowser;
-  const value: ustring; kind: TCefHandlerStatusType);
+  const value: ustring);
 begin
-  FEvent.doOnStatusMessage(browser, value, kind);
+  FEvent.doOnStatusMessage(browser, value);
 end;
 
 procedure TCustomDisplayHandler.OnTitleChange(const browser: ICefBrowser;
@@ -859,6 +871,12 @@ begin
   Result := FEvent.doOnGetResourceHandler(browser, frame, request);
 end;
 
+function TCustomRequestHandler.OnBeforePluginLoad(const browser: ICefBrowser;
+  const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean;
+begin
+  Result := FEvent.doOnBeforePluginLoad(browser, url, policyUrl, info);
+end;
+
 function TCustomRequestHandler.OnBeforeResourceLoad(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest): Boolean;
 begin
@@ -869,6 +887,13 @@ procedure TCustomRequestHandler.OnProtocolExecution(const browser: ICefBrowser;
   const url: ustring; out allowOsExecution: Boolean);
 begin
   FEvent.doOnProtocolExecution(browser, url, allowOsExecution);
+end;
+
+function TCustomRequestHandler.OnQuotaRequest(const browser: ICefBrowser;
+  const originUrl: ustring; newSize: Int64;
+  const callback: ICefQuotaCallback): Boolean;
+begin
+  Result := FEvent.doOnQuotaRequest(browser, originUrl, newSize, callback);
 end;
 
 procedure TCustomRequestHandler.OnResourceRedirect(const browser: ICefBrowser;
