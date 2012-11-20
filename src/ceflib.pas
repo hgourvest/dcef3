@@ -10875,7 +10875,7 @@ function TCefRTTIExtension.GetValue(pi: PTypeInfo; const v: ICefv8Value; var ret
     pd: PTypeData;
   begin
     pd := GetTypeData(pi);
-    if v.IsInt and (v.GetIntValue >= pd.MinValue) and (v.GetIntValue <= pd.MaxValue) then
+    if (v.IsInt or v.IsBool) and (v.GetIntValue >= pd.MinValue) and (v.GetIntValue <= pd.MaxValue) then
     begin
       case pd.OrdType of
         otSByte: sv.sb := v.GetIntValue;
@@ -11106,7 +11106,6 @@ function TCefRTTIExtension.GetValue(pi: PTypeInfo; const v: ICefv8Value; var ret
     end else
       Result := False; // todo
   end;
-
 begin
   case pi.Kind of
     tkInteger, tkEnumeration: Result := ProcessInt;
