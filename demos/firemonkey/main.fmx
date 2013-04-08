@@ -1,0 +1,77 @@
+object MainForm: TMainForm
+  Left = 0
+  Top = 0
+  Caption = 'Chromium'
+  ClientHeight = 500
+  ClientWidth = 700
+  Visible = False
+  OnCreate = FormCreate
+  StyleLookup = 'backgroundstyle'
+  object crm: TChromiumFMX
+    Align = alBottom
+    Position.Point = '(0,24)'
+    Width = 700.000000000000000000
+    Height = 476.000000000000000000
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    DefaultUrl = 'http://www.google.com'
+    TabOrder = 0
+    OnLoadStart = crmLoadStart
+    OnLoadEnd = crmLoadEnd
+    OnAddressChange = crmAddressChange
+    OnTitleChange = crmTitleChange
+  end
+  object btPrev: TButton
+    Align = alLeft
+    Width = 25.000000000000000000
+    Height = 24.000000000000000000
+    OnClick = btPrevClick
+    TabOrder = 1
+    Text = '<-'
+  end
+  object btNext: TButton
+    Align = alLeft
+    Position.Point = '(25,0)'
+    Width = 25.000000000000000000
+    Height = 24.000000000000000000
+    OnClick = btNextClick
+    TabOrder = 2
+    Text = '->'
+  end
+  object btHome: TButton
+    Align = alLeft
+    Position.Point = '(50,0)'
+    Width = 25.000000000000000000
+    Height = 24.000000000000000000
+    OnClick = btHomeClick
+    TabOrder = 3
+    Text = 'H'
+  end
+  object btReload: TButton
+    Align = alLeft
+    Position.Point = '(75,0)'
+    Width = 25.000000000000000000
+    Height = 24.000000000000000000
+    OnClick = btReloadClick
+    TabOrder = 4
+    Text = 'R'
+  end
+  object btLaunch: TButton
+    Align = alRight
+    Position.Point = '(675,0)'
+    Width = 25.000000000000000000
+    Height = 24.000000000000000000
+    OnClick = btLaunchClick
+    TabOrder = 5
+    Text = '>'
+  end
+  object edAddress: TEdit
+    Align = alLeft
+    Position.Point = '(100,0)'
+    Width = 573.000000000000000000
+    Height = 24.000000000000000000
+    OnKeyDown = edAddressKeyDown
+    TabOrder = 6
+    KeyboardType = vktDefault
+    Password = False
+  end
+end
