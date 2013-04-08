@@ -6,7 +6,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ceflib, cefvcl, Buttons, ActnList, Menus, ComCtrls,
-  ExtCtrls, XPMan, Registry, ShellApi, SyncObjs, ProxyForm;
+  ExtCtrls, XPMan, Registry, ShellApi, SyncObjs;
 
 type
   TMainForm = class(TForm)
@@ -58,8 +58,6 @@ type
     actFileScheme: TAction;
     actChromeDevTool: TAction;
     DebuginChrome1: TMenuItem;
-    actProxy: TAction;
-    Setupproxyaddress1: TMenuItem;
     procedure edAddressKeyPress(Sender: TObject; var Key: Char);
     procedure actPrevExecute(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
@@ -94,10 +92,6 @@ type
     procedure actDocExecute(Sender: TObject);
     procedure actGroupExecute(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-    procedure crmBeforePopup(Sender: TObject; const parentBrowser: ICefBrowser;
-      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-      var url: ustring; var client: ICefClient;
-      var settings: TCefBrowserSettings; out Result: Boolean);
     procedure crmBeforeDownload(Sender: TObject; const browser: ICefBrowser;
       const downloadItem: ICefDownloadItem; const suggestedName: ustring;
       const callback: ICefBeforeDownloadCallback);
@@ -108,9 +102,13 @@ type
       const browser: ICefBrowser; sourceProcess: TCefProcessId;
       const message: ICefProcessMessage; out Result: Boolean);
     procedure actChromeDevToolExecute(Sender: TObject);
-    procedure actProxyExecute(Sender: TObject);
     procedure crmBeforeResourceLoad(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest; out Result: Boolean);
+    procedure crmBeforePopup(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+      var client: ICefClient; var settings: TCefBrowserSettings;
+      var noJavascriptAccess: Boolean; out Result: Boolean);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -121,33 +119,8 @@ type
   TCustomRenderProcessHandler = class(TCefRenderProcessHandlerOwn)
   protected
     procedure OnWebKitInitialized; override;
-    function OnProcessMessageReceived(const browser: ICefBrowser;
-      sourceProcess: TCefProcessId; const message: ICefProcessMessage): Boolean;
-      override;
-  end;
-
-  TCustomBrowserProcessHandler = class(TCefBrowserProcessHandlerOwn)
-  private
-    FProxyHandler: ICefProxyHandler;
-  protected
-    function GetProxyHandler: ICefProxyHandler; override;
-  public
-    constructor Create; override;
-  end;
-
-  TCustomProxyHandler = class(TCefProxyHandlerOwn, IStringValue)
-  private
-    FCriticalSection: TCriticalSection;
-    FProxy: string;
-  protected
-    function GetString: string;
-    procedure SetString(const value: string);
-
-    procedure GetProxyForUrl(const url: ustring; var proxyType: TCefProxyType;
-      var proxyList: ustring); override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
+    function OnProcessMessageReceived(const browser: ICefBrowser; sourceProcess: TCefProcessId;
+      const message: ICefProcessMessage): Boolean; override;
   end;
 
   TTestExtension = class
@@ -302,18 +275,6 @@ begin
     actPrev.Enabled := False;
 end;
 
-procedure TMainForm.actProxyExecute(Sender: TObject);
-var
-  dlg: TProxyFormDlg;
-begin
-  dlg := TProxyFormDlg.Create(Self);
-  try
-    dlg.ShowModal
-  finally
-    dlg.Free;
-  end;
-end;
-
 procedure TMainForm.actReloadExecute(Sender: TObject);
 begin
   if crm.Browser <> nil then
@@ -367,13 +328,14 @@ begin
   callback.Cont(ExtractFilePath(ParamStr(0)) + suggestedName, True);
 end;
 
-procedure TMainForm.crmBeforePopup(Sender: TObject;
-  const parentBrowser: ICefBrowser; var popupFeatures: TCefPopupFeatures;
-  var windowInfo: TCefWindowInfo; var url: ustring; var client: ICefClient;
-  var settings: TCefBrowserSettings; out Result: Boolean);
+procedure TMainForm.crmBeforePopup(Sender: TObject; const browser: ICefBrowser;
+  const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+  var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+  var client: ICefClient; var settings: TCefBrowserSettings;
+  var noJavascriptAccess: Boolean; out Result: Boolean);
 begin
   // prevent popup
-  crm.Load(url);
+  crm.Load(targetUrl);
   Result := True;
 end;
 
@@ -526,71 +488,8 @@ begin
   Result := 'Hello from Delphi';
 end;
 
-{ TCustomBrowserProcessHandler }
-
-constructor TCustomBrowserProcessHandler.Create;
-begin
-  inherited;
-  FProxyHandler := TCustomProxyHandler.Create;
-end;
-
-function TCustomBrowserProcessHandler.GetProxyHandler: ICefProxyHandler;
-begin
-  Result := FProxyHandler;
-end;
-
-{ TCustomProxyHandler }
-
-constructor TCustomProxyHandler.Create;
-begin
-  inherited;
-  FCriticalSection := TCriticalSection.Create;
-end;
-
-destructor TCustomProxyHandler.Destroy;
-begin
-  FCriticalSection.Free;
-  inherited;
-end;
-
-procedure TCustomProxyHandler.GetProxyForUrl(const url: ustring;
-  var proxyType: TCefProxyType; var proxyList: ustring);
-begin
-  FCriticalSection.Enter;
-  try
-    if (FProxy <> '') then
-    begin
-      proxyType := CEF_PROXY_TYPE_NAMED;
-      proxyList := FProxy;
-    end;
-  finally
-    FCriticalSection.Leave;
-  end;
-end;
-
-function TCustomProxyHandler.GetString: string;
-begin
-  FCriticalSection.Enter;
-  try
-    Result := FProxy;
-  finally
-    FCriticalSection.Leave;
-  end;
-end;
-
-procedure TCustomProxyHandler.SetString(const value: string);
-begin
-  FCriticalSection.Enter;
-  try
-    FProxy := value;
-  finally
-    FCriticalSection.Leave;
-  end;
-end;
-
 initialization
   CefRemoteDebuggingPort := 9000;
   CefRenderProcessHandler := TCustomRenderProcessHandler.Create;
-  CefBrowserProcessHandler := TCustomBrowserProcessHandler.Create;
-
+  CefBrowserProcessHandler := TCefBrowserProcessHandlerOwn.Create;
 end.

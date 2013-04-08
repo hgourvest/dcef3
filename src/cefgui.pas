@@ -78,11 +78,12 @@ type
     const messageText: ustring; isReload: Boolean;
     const callback: ICefJsDialogCallback; out Result: Boolean) of object;
   TOnResetDialogState = procedure(Sender: TObject; const browser: ICefBrowser) of object;
+  TOnBeforePopup = procedure(Sender: TObject; const browser: ICefBrowser;
+    const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+    var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+    var client: ICefClient; var settings: TCefBrowserSettings;
+    var noJavascriptAccess: Boolean; out Result: Boolean) of object;
 
-  TOnBeforePopup = procedure(Sender: TObject; const parentBrowser: ICefBrowser;
-     var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-     var url: ustring; var client: ICefClient;
-     var settings: TCefBrowserSettings; out Result: Boolean) of object;
   TOnAfterCreated = procedure(Sender: TObject; const browser: ICefBrowser) of object;
   TOnBeforeClose = procedure(Sender: TObject; const browser: ICefBrowser) of object;
   TOnRunModal = procedure(Sender: TObject; const browser: ICefBrowser; out Result: Boolean) of object;
@@ -100,82 +101,83 @@ type
   TOnQuotaRequest = procedure(Sender: TObject; const browser: ICefBrowser;
     const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback;
     out Result: Boolean) of object;
-  TOnGetCookieManager = procedure(Sender: TObject; const browser: ICefBrowser; const mainUrl: ustring; out Result: ICefCookieManager) of object;
-  TOnProtocolExecution = procedure(Sender: TObject; const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean) of object;
-  TOnBeforePluginLoad = procedure(Sender: TObject; const browser: ICefBrowser; const url, policyUrl: ustring; const info: ICefWebPluginInfo; out Result: Boolean) of Object;
+  TOnGetCookieManager = procedure(Sender: TObject; const browser: ICefBrowser;
+    const mainUrl: ustring; out Result: ICefCookieManager) of object;
+  TOnProtocolExecution = procedure(Sender: TObject; const browser: ICefBrowser;
+    const url: ustring; out allowOsExecution: Boolean) of object;
+  TOnBeforePluginLoad = procedure(Sender: TObject; const browser: ICefBrowser;
+    const url, policyUrl: ustring; const info: ICefWebPluginInfo; out Result: Boolean) of Object;
 
+  TOnFileDialog = procedure(Sender: TObject; const browser: ICefBrowser;
+    mode: TCefFileDialogMode; const title, defaultFileName: ustring;
+    acceptTypes: TStrings; const callback: ICefFileDialogCallback;
+    out Result: Boolean) of Object;
+
+  TOnGetRootScreenRect = procedure(Sender: TObject; const browser: ICefBrowser;
+    rect: PCefRect; out Result: Boolean) of Object;
+  TOnGetViewRect = procedure(Sender: TObject; const browser: ICefBrowser;
+    rect: PCefRect; out Result: Boolean) of Object;
+  TOnGetScreenPoint = procedure(Sender: TObject; const browser: ICefBrowser;
+    viewX, viewY: Integer; screenX, screenY: PInteger; out Result: Boolean) of Object;
+  TOnPopupShow = procedure(Sender: TObject; const browser: ICefBrowser;
+    show: Boolean) of Object;
+  TOnPopupSize = procedure(Sender: TObject; const browser: ICefBrowser;
+    const rect: PCefRect) of Object;
+  TOnPaint = procedure(Sender: TObject; const browser: ICefBrowser;
+    kind: TCefPaintElementType; dirtyRectsCount: Cardinal; const dirtyRects: PCefRectArray;
+    const buffer: Pointer; width, height: Integer) of Object;
+  TOnCursorChange = procedure(Sender: TObject; const browser: ICefBrowser;
+    cursor: TCefCursorHandle) of Object;
 
   TChromiumOptions = class(TPersistent)
   private
-    FEncodingDetectorEnabled: Boolean;
-    FJavascriptDisabled: Boolean;
-    FJavascriptOpenWindowsDisallowed: Boolean;
-    FJavascriptCloseWindowsDisallowed: Boolean;
-    FJavascriptAccessClipboardDisallowed: Boolean;
-    FDomPasteDisabled: Boolean;
-    FCaretBrowsingEnabled: Boolean;
-    FJavaDisabled: Boolean;
-    FPluginsDisabled: Boolean;
-    FUniversalAccessFromFileUrlsAllowed: Boolean;
-    FFileAccessFromFileUrlsAllowed: Boolean;
-    FWebSecurityDisabled: Boolean;
-    FXssAuditorEnabled: Boolean;
-    FImageLoadDisabled: Boolean;
-    FShrinkStandaloneImagesToFit: Boolean;
-    FSiteSpecificQuirksDisabled: Boolean;
-    FTextAreaResizeDisabled: Boolean;
-    FPageCacheDisabled: Boolean;
-    FTabToLinksDisabled: Boolean;
-    FHyperlinkAuditingDisabled: Boolean;
-    FUserStyleSheetEnabled: Boolean;
-    FAuthorAndUserStylesDisabled: Boolean;
-    FLocalStorageDisabled: Boolean;
-    FDatabasesDisabled: Boolean;
-    FApplicationCacheDisabled: Boolean;
-    FWebglDisabled: Boolean;
-    FAcceleratedCompositingDisabled: Boolean;
-    FAcceleratedLayersDisabled: Boolean;
-    FAccelerated2dCanvasDisabled: Boolean;
-    FAcceleratedPaintingEnabled: Boolean;
-    FAcceleratedFiltersEnabled: Boolean;
-    FAcceleratedPluginsDisabled: Boolean;
-    FDeveloperToolsDisabled: Boolean;
-    FFullscreenEnabled: Boolean;
+    FJavascript: TCefState;
+    FJavascriptOpenWindows: TCefState;
+    FJavascriptCloseWindows: TCefState;
+    FJavascriptAccessClipboard: TCefState;
+    FJavascriptDomPaste: TCefState;
+    FCaretBrowsing: TCefState;
+    FJava: TCefState;
+    FPlugins: TCefState;
+    FUniversalAccessFromFileUrls: TCefState;
+    FFileAccessFromFileUrls: TCefState;
+    FWebSecurity: TCefState;
+    FImageLoading: TCefState;
+    FImageShrinkStandaloneToFit: TCefState;
+    FTextAreaResize: TCefState;
+    FPageCache: TCefState;
+    FTabToLinks: TCefState;
+    FAuthorAndUserStyles: TCefState;
+    FLocalStorage: TCefState;
+    FDatabases: TCefState;
+    FApplicationCache: TCefState;
+    FWebgl: TCefState;
+    FAcceleratedCompositing: TCefState;
+    FDeveloperTools: TCefState;
   published
-    property EncodingDetectorEnabled: Boolean read FEncodingDetectorEnabled write FEncodingDetectorEnabled default False;
-    property JavascriptDisabled: Boolean read FJavascriptDisabled write FJavascriptDisabled default False;
-    property JavascriptOpenWindowsDisallowed: Boolean read FJavascriptOpenWindowsDisallowed write FJavascriptOpenWindowsDisallowed default False;
-    property JavascriptCloseWindowsDisallowed: Boolean read FJavascriptCloseWindowsDisallowed write FJavascriptCloseWindowsDisallowed default False;
-    property JavascriptAccessClipboardDisallowed: Boolean read FJavascriptAccessClipboardDisallowed write FJavascriptAccessClipboardDisallowed default False;
-    property DomPasteDisabled: Boolean read FDomPasteDisabled write FDomPasteDisabled default False;
-    property CaretBrowsingEnabled: Boolean read FCaretBrowsingEnabled write FCaretBrowsingEnabled default False;
-    property JavaDisabled: Boolean read FJavaDisabled write FJavaDisabled default False;
-    property PluginsDisabled: Boolean read FPluginsDisabled write FPluginsDisabled default False;
-    property UniversalAccessFromFileUrlsAllowed: Boolean read FUniversalAccessFromFileUrlsAllowed write FUniversalAccessFromFileUrlsAllowed default False;
-    property FileAccessFromFileUrlsAllowed: Boolean read FFileAccessFromFileUrlsAllowed write FFileAccessFromFileUrlsAllowed default False;
-    property WebSecurityDisabled: Boolean read FWebSecurityDisabled write FWebSecurityDisabled default False;
-    property XssAuditorEnabled: Boolean read FXssAuditorEnabled write FXssAuditorEnabled default False;
-    property ImageLoadDisabled: Boolean read FImageLoadDisabled write FImageLoadDisabled default False;
-    property ShrinkStandaloneImagesToFit: Boolean read FShrinkStandaloneImagesToFit write FShrinkStandaloneImagesToFit default False;
-    property SiteSpecificQuirksDisabled: Boolean read FSiteSpecificQuirksDisabled write FSiteSpecificQuirksDisabled default False;
-    property TextAreaResizeDisabled: Boolean read FTextAreaResizeDisabled write FTextAreaResizeDisabled default False;
-    property PageCacheDisabled: Boolean read FPageCacheDisabled write FPageCacheDisabled default False;
-    property TabToLinksDisabled: Boolean read FTabToLinksDisabled write FTabToLinksDisabled default False;
-    property HyperlinkAuditingDisabled: Boolean read FHyperlinkAuditingDisabled write FHyperlinkAuditingDisabled default False;
-    property UserStyleSheetEnabled: Boolean read FUserStyleSheetEnabled write FUserStyleSheetEnabled default False;
-    property AuthorAndUserStylesDisabled: Boolean read FAuthorAndUserStylesDisabled write FAuthorAndUserStylesDisabled default False;
-    property LocalStorageDisabled: Boolean read FLocalStorageDisabled write FLocalStorageDisabled default False;
-    property DatabasesDisabled: Boolean read FDatabasesDisabled write FDatabasesDisabled default False;
-    property ApplicationCacheDisabled: Boolean read FApplicationCacheDisabled write FApplicationCacheDisabled default False;
-    property WebglDisabled: Boolean read FWebglDisabled write FWebglDisabled default False;
-    property AcceleratedCompositingDisabled: Boolean read FAcceleratedCompositingDisabled write FAcceleratedCompositingDisabled;
-    property AcceleratedLayersDisabled: Boolean read FAcceleratedLayersDisabled write FAcceleratedLayersDisabled default False;
-    property Accelerated2dCanvasDisabled: Boolean read FAccelerated2dCanvasDisabled write FAccelerated2dCanvasDisabled default False;
-    property AcceleratedPaintingEnabled: Boolean read FAcceleratedPaintingEnabled write FAcceleratedPaintingEnabled;
-    property AcceleratedFiltersEnabled: Boolean read FAcceleratedFiltersEnabled write FAcceleratedFiltersEnabled;
-    property AcceleratedPluginsDisabled: Boolean read FAcceleratedPluginsDisabled write FAcceleratedPluginsDisabled;
-    property DeveloperToolsDisabled: Boolean read FDeveloperToolsDisabled write FDeveloperToolsDisabled default False;
-    property FullscreenEnabled: Boolean read FFullscreenEnabled write FFullscreenEnabled default False;
+    property Javascript: TCefState read FJavascript write FJavascript default STATE_DEFAULT;
+    property JavascriptOpenWindows: TCefState read FJavascriptOpenWindows write FJavascriptOpenWindows default STATE_DEFAULT;
+    property JavascriptCloseWindows: TCefState read FJavascriptCloseWindows write FJavascriptCloseWindows default STATE_DEFAULT;
+    property JavascriptAccessClipboard: TCefState read FJavascriptAccessClipboard write FJavascriptAccessClipboard default STATE_DEFAULT;
+    property JavascriptDomPaste: TCefState read FJavascriptDomPaste write FJavascriptDomPaste default STATE_DEFAULT;
+    property CaretBrowsing: TCefState read FCaretBrowsing write FCaretBrowsing default STATE_DEFAULT;
+    property Java: TCefState read FJava write FJava default STATE_DEFAULT;
+    property Plugins: TCefState read FPlugins write FPlugins default STATE_DEFAULT;
+    property UniversalAccessFromFileUrls: TCefState read FUniversalAccessFromFileUrls write FUniversalAccessFromFileUrls default STATE_DEFAULT;
+    property FileAccessFromFileUrls: TCefState read FFileAccessFromFileUrls write FFileAccessFromFileUrls default STATE_DEFAULT;
+    property WebSecurity: TCefState read FWebSecurity write FWebSecurity default STATE_DEFAULT;
+    property ImageLoading: TCefState read FImageLoading write FImageLoading default STATE_DEFAULT;
+    property ImageShrinkStandaloneToFit: TCefState read FImageShrinkStandaloneToFit write FImageShrinkStandaloneToFit default STATE_DEFAULT;
+    property TextAreaResize: TCefState read FTextAreaResize write FTextAreaResize default STATE_DEFAULT;
+    property PageCache: TCefState read FPageCache write FPageCache default STATE_DEFAULT;
+    property TabToLinks: TCefState read FTabToLinks write FTabToLinks default STATE_DEFAULT;
+    property AuthorAndUserStyles: TCefState read FAuthorAndUserStyles write FAuthorAndUserStyles default STATE_DEFAULT;
+    property LocalStorage: TCefState read FLocalStorage write FLocalStorage default STATE_DEFAULT;
+    property Databases: TCefState read FDatabases write FDatabases default STATE_DEFAULT;
+    property ApplicationCache: TCefState read FApplicationCache write FApplicationCache default STATE_DEFAULT;
+    property Webgl: TCefState read FWebgl write FWebgl default STATE_DEFAULT;
+    property AcceleratedCompositing: TCefState read FAcceleratedCompositing write FAcceleratedCompositing default STATE_DEFAULT;
+    property DeveloperTools: TCefState read FDeveloperTools write FDeveloperTools default STATE_DEFAULT;
   end;
 
   TChromiumFontOptions = class(TPersistent)
@@ -188,7 +190,7 @@ type
     FSerifFontFamily: ustring;
     FDefaultFixedFontSize: Integer;
     FDefaultFontSize: Integer;
-    FRemoteFontsDisabled: Boolean;
+    FRemoteFontsDisabled: TCefState;
     FFixedFontFamily: ustring;
     FMinimumFontSize: Integer;
   public
@@ -204,7 +206,7 @@ type
     property DefaultFixedFontSize: Integer read FDefaultFixedFontSize write FDefaultFixedFontSize default 0;
     property MinimumFontSize: Integer read FMinimumFontSize write FMinimumFontSize default 0;
     property MinimumLogicalFontSize: Integer read FMinimumLogicalFontSize write FMinimumLogicalFontSize default 0;
-    property RemoteFontsDisabled: Boolean read FRemoteFontsDisabled write FRemoteFontsDisabled default False;
+    property RemoteFonts: TCefState read FRemoteFontsDisabled write FRemoteFontsDisabled default STATE_DEFAULT;
   end;
 
   IChromiumEvents = interface
@@ -261,10 +263,11 @@ type
       const callback: ICefJsDialogCallback): Boolean;
     procedure doOnResetDialogState(const browser: ICefBrowser);
 
-    function doOnBeforePopup(const parentBrowser: ICefBrowser;
-       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-       var url: ustring; var client: ICefClient;
-       var settings: TCefBrowserSettings): Boolean;
+    function doOnBeforePopup(const browser: ICefBrowser;
+      const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+      var client: ICefClient; var settings: TCefBrowserSettings;
+      var noJavascriptAccess: Boolean): Boolean;
     procedure doOnAfterCreated(const browser: ICefBrowser);
     procedure doOnBeforeClose(const browser: ICefBrowser);
     function doOnRunModal(const browser: ICefBrowser): Boolean;
@@ -283,7 +286,23 @@ type
       newSize: Int64; const callback: ICefQuotaCallback): Boolean;
     function doOnGetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager;
     procedure doOnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean);
-    function doOnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean;
+    function doOnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
+      const info: ICefWebPluginInfo): Boolean;
+
+    function doOnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
+      const title, defaultFileName: ustring; acceptTypes: TStrings;
+      const callback: ICefFileDialogCallback): Boolean;
+
+    function doOnGetRootScreenRect(const browser: ICefBrowser; rect: PCefRect): Boolean;
+    function doOnGetViewRect(const browser: ICefBrowser; rect: PCefRect): Boolean;
+    function doOnGetScreenPoint(const browser: ICefBrowser; viewX, viewY: Integer;
+      screenX, screenY: PInteger): Boolean;
+    procedure doOnPopupShow(const browser: ICefBrowser; show: Boolean);
+    procedure doOnPopupSize(const browser: ICefBrowser; const rect: PCefRect);
+    procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
+      dirtyRectsCount: Cardinal; const dirtyRects: PCefRectArray;
+      const buffer: Pointer; width, height: Integer);
+    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
   end;
 
   ICefClientHandler = interface
@@ -297,15 +316,18 @@ type
     FLoadHandler: ICefLoadHandler;
     FFocusHandler: ICefFocusHandler;
     FContextMenuHandler: ICefContextMenuHandler;
+    FDialogHandler: ICefDialogHandler;
     FKeyboardHandler: ICefKeyboardHandler;
     FDisplayHandler: ICefDisplayHandler;
     FDownloadHandler: ICefDownloadHandler;
     FGeolocationHandler: ICefGeolocationHandler;
     FJsDialogHandler: ICefJsDialogHandler;
     FLifeSpanHandler: ICefLifeSpanHandler;
+    FRenderHandler: ICefRenderHandler;
     FRequestHandler: ICefRequestHandler;
   protected
     function GetContextMenuHandler: ICefContextMenuHandler; override;
+    function GetDialogHandler: ICefDialogHandler; override;
     function GetDisplayHandler: ICefDisplayHandler; override;
     function GetDownloadHandler: ICefDownloadHandler; override;
     function GetFocusHandler: ICefFocusHandler; override;
@@ -313,6 +335,7 @@ type
     function GetJsdialogHandler: ICefJsdialogHandler; override;
     function GetKeyboardHandler: ICefKeyboardHandler; override;
     function GetLifeSpanHandler: ICefLifeSpanHandler; override;
+    function GetRenderHandler: ICefRenderHandler; override;
     function GetLoadHandler: ICefLoadHandler; override;
     function GetRequestHandler: ICefRequestHandler; override;
     function OnProcessMessageReceived(const browser: ICefBrowser;
@@ -359,6 +382,17 @@ type
       const params: ICefContextMenuParams; commandId: Integer;
       eventFlags: TCefEventFlags): Boolean; override;
     procedure OnContextMenuDismissed(const browser: ICefBrowser; const frame: ICefFrame); override;
+  public
+    constructor Create(const events: IChromiumEvents); reintroduce; virtual;
+  end;
+
+  TCustomDialogHandler = class(TCefDialogHandlerOwn)
+  private
+    FEvent: IChromiumEvents;
+  protected
+    function OnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
+      const title: ustring; const defaultFileName: ustring;
+      acceptTypes: TStrings; const callback: ICefFileDialogCallback): Boolean; override;
   public
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
   end;
@@ -432,10 +466,10 @@ type
   private
     FEvent: IChromiumEvents;
   protected
-    function OnBeforePopup(const parentBrowser: ICefBrowser;
-       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-       var url: ustring; var client: ICefClient;
-       var settings: TCefBrowserSettings): Boolean; override;
+    function OnBeforePopup(const browser: ICefBrowser; const frame: ICefFrame;
+      const targetUrl, targetFrameName: ustring; var popupFeatures: TCefPopupFeatures;
+      var windowInfo: TCefWindowInfo; var client: ICefClient; var settings: TCefBrowserSettings;
+      var noJavascriptAccess: Boolean): Boolean; override;
     procedure OnAfterCreated(const browser: ICefBrowser); override;
     procedure OnBeforeClose(const browser: ICefBrowser); override;
     function RunModal(const browser: ICefBrowser): Boolean; override;
@@ -467,6 +501,24 @@ type
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
   end;
 
+  TCustomRenderHandler = class(TCefRenderHandlerOwn)
+  private
+    FEvent: IChromiumEvents;
+  protected
+    function GetRootScreenRect(const browser: ICefBrowser; rect: PCefRect): Boolean; override;
+    function GetViewRect(const browser: ICefBrowser; rect: PCefRect): Boolean; override;
+    function GetScreenPoint(const browser: ICefBrowser; viewX, viewY: Integer;
+      screenX, screenY: PInteger): Boolean; override;
+    procedure OnPopupShow(const browser: ICefBrowser; show: Boolean); override;
+    procedure OnPopupSize(const browser: ICefBrowser; const rect: PCefRect); override;
+    procedure OnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
+      dirtyRectsCount: Cardinal; const dirtyRects: PCefRectArray;
+      const buffer: Pointer; width, height: Integer); override;
+    procedure OnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle); override;
+  public
+    constructor Create(const events: IChromiumEvents); reintroduce; virtual;
+  end;
+
 implementation
 
 { TChromiumFontOptions }
@@ -481,7 +533,7 @@ begin
   FSerifFontFamily := '';
   FDefaultFixedFontSize := 0;
   FDefaultFontSize := 0;
-  FRemoteFontsDisabled := False;
+  FRemoteFontsDisabled := STATE_DEFAULT;
   FFixedFontFamily := '';
   FMinimumFontSize := 0;
 end;
@@ -495,6 +547,7 @@ begin
   FLoadHandler := TCustomLoadHandler.Create(events);
   FFocusHandler := TCustomFocusHandler.Create(events);
   FContextMenuHandler := TCustomContextMenuHandler.Create(events);
+  FDialogHandler := TCustomDialogHandler.Create(events);
   FKeyboardHandler := TCustomKeyboardHandler.Create(events);
   FDisplayHandler := TCustomDisplayHandler.Create(events);
   FDownloadHandler := TCustomDownloadHandler.Create(events);
@@ -502,6 +555,7 @@ begin
   FJsDialogHandler := TCustomJsDialogHandler.Create(events);
   FLifeSpanHandler := TCustomLifeSpanHandler.Create(events);
   FRequestHandler := TCustomRequestHandler.Create(events);
+  FRenderHandler := TCustomRenderHandler.Create(events);
 end;
 
 procedure TCustomClientHandler.Disconnect;
@@ -510,6 +564,7 @@ begin
   FLoadHandler := nil;
   FFocusHandler := nil;
   FContextMenuHandler := nil;
+  FDialogHandler := nil;
   FKeyboardHandler := nil;
   FDisplayHandler := nil;
   FDownloadHandler := nil;
@@ -517,11 +572,17 @@ begin
   FJsDialogHandler := nil;
   FLifeSpanHandler := nil;
   FRequestHandler := nil;
+  FRenderHandler := nil;
 end;
 
 function TCustomClientHandler.GetContextMenuHandler: ICefContextMenuHandler;
 begin
   Result := FContextMenuHandler;
+end;
+
+function TCustomClientHandler.GetDialogHandler: ICefDialogHandler;
+begin
+  Result := FDialogHandler;
 end;
 
 function TCustomClientHandler.GetDisplayHandler: ICefDisplayHandler;
@@ -562,6 +623,11 @@ end;
 function TCustomClientHandler.GetLoadHandler: ICefLoadHandler;
 begin
   Result := FLoadHandler;
+end;
+
+function TCustomClientHandler.GetRenderHandler: ICefRenderHandler;
+begin
+  Result := FRenderHandler;
 end;
 
 function TCustomClientHandler.GetRequestHandler: ICefRequestHandler;
@@ -830,12 +896,15 @@ begin
   FEvent.doOnBeforeClose(browser);
 end;
 
-function TCustomLifeSpanHandler.OnBeforePopup(const parentBrowser: ICefBrowser;
+
+function TCustomLifeSpanHandler.OnBeforePopup(const browser: ICefBrowser;
+  const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
   var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-  var url: ustring; var client: ICefClient;
-  var settings: TCefBrowserSettings): Boolean;
+  var client: ICefClient; var settings: TCefBrowserSettings;
+  var noJavascriptAccess: Boolean): Boolean;
 begin
-  Result := FEvent.doOnBeforePopup(parentBrowser, popupFeatures, windowInfo, url, client, settings);
+  Result := FEvent.doOnBeforePopup(browser, frame, targetUrl, targetFrameName,
+    popupFeatures, windowInfo, client, settings, noJavascriptAccess);
 end;
 
 function TCustomLifeSpanHandler.RunModal(const browser: ICefBrowser): Boolean;
@@ -901,5 +970,74 @@ procedure TCustomRequestHandler.OnResourceRedirect(const browser: ICefBrowser;
 begin
   FEvent.doOnResourceRedirect(browser, frame, oldUrl, newUrl);
 end;
+
+{ TCustomDialogHandler }
+
+constructor TCustomDialogHandler.Create(const events: IChromiumEvents);
+begin
+  inherited Create;
+  FEvent := events;
+end;
+
+function TCustomDialogHandler.OnFileDialog(const browser: ICefBrowser;
+  mode: TCefFileDialogMode; const title, defaultFileName: ustring;
+  acceptTypes: TStrings; const callback: ICefFileDialogCallback): Boolean;
+begin
+  Result := FEvent.doOnFileDialog(browser, mode, title,
+    defaultFileName, acceptTypes, callback)
+end;
+
+{ TCustomRenderHandler }
+
+constructor TCustomRenderHandler.Create(const events: IChromiumEvents);
+begin
+  inherited Create;
+  FEvent := events;
+end;
+
+function TCustomRenderHandler.GetRootScreenRect(const browser: ICefBrowser;
+  rect: PCefRect): Boolean;
+begin
+  Result := FEvent.doOnGetRootScreenRect(browser, rect);
+end;
+
+function TCustomRenderHandler.GetScreenPoint(const browser: ICefBrowser; viewX,
+  viewY: Integer; screenX, screenY: PInteger): Boolean;
+begin
+  Result := FEvent.doOnGetScreenPoint(browser, viewX, viewY, screenX, screenY);
+end;
+
+function TCustomRenderHandler.GetViewRect(const browser: ICefBrowser;
+  rect: PCefRect): Boolean;
+begin
+  Result := FEvent.doOnGetViewRect(browser, rect);
+end;
+
+procedure TCustomRenderHandler.OnCursorChange(const browser: ICefBrowser;
+  cursor: TCefCursorHandle);
+begin
+  FEvent.doOnCursorChange(browser, cursor);
+end;
+
+procedure TCustomRenderHandler.OnPaint(const browser: ICefBrowser;
+  kind: TCefPaintElementType; dirtyRectsCount: Cardinal;
+  const dirtyRects: PCefRectArray; const buffer: Pointer; width, height: Integer);
+begin
+  FEvent.doOnPaint(browser, kind, dirtyRectsCount, dirtyRects, buffer, width, height);
+end;
+
+procedure TCustomRenderHandler.OnPopupShow(const browser: ICefBrowser;
+  show: Boolean);
+begin
+  FEvent.doOnPopupShow(browser, show);
+end;
+
+procedure TCustomRenderHandler.OnPopupSize(const browser: ICefBrowser;
+  const rect: PCefRect);
+begin
+  FEvent.doOnPopupSize(browser, rect);
+end;
+
+
 
 end.

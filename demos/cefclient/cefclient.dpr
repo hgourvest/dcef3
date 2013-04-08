@@ -36,10 +36,10 @@ type
   TCustomLifeSpan = class(TCefLifeSpanHandlerOwn)
   protected
     procedure OnAfterCreated(const browser: ICefBrowser); override;
-    function OnBeforePopup(const parentBrowser: ICefBrowser;
-       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-       var url: ustring; var client: ICefClient;
-       var settings: TCefBrowserSettings): Boolean; override;
+    function OnBeforePopup(const browser: ICefBrowser; const frame: ICefFrame;
+      const targetUrl, targetFrameName: ustring; var popupFeatures: TCefPopupFeatures;
+      var windowInfo: TCefWindowInfo; var client: ICefClient; var settings: TCefBrowserSettings;
+      var noJavascriptAccess: Boolean): Boolean; override;
     procedure OnBeforeClose(const browser: ICefBrowser); override;
     function DoClose(const browser: ICefBrowser): Boolean; override;
   end;
@@ -179,7 +179,7 @@ begin
           info.Height := rect.bottom - rect.top;
           FillChar(setting, sizeof(setting), 0);
           setting.size := SizeOf(setting);
-          CefBrowserHostCreateSync(@info, handl, navigateto, @setting);
+          CefBrowserHostCreate(@info, handl, navigateto, @setting);
           isLoading := False;
           canGoBack := False;
           canGoForward := False;
@@ -315,16 +315,17 @@ begin
     brows := nil;
 end;
 
-function TCustomLifeSpan.OnBeforePopup(const parentBrowser: ICefBrowser;
+function TCustomLifeSpan.OnBeforePopup(const browser: ICefBrowser;
+  const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
   var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-  var url: ustring; var client: ICefClient;
-  var settings: TCefBrowserSettings): Boolean;
+  var client: ICefClient; var settings: TCefBrowserSettings;
+  var noJavascriptAccess: Boolean): Boolean;
 begin
-  if url = 'about:blank' then
+  if targetUrl = 'about:blank' then
     result := False else
     begin
       Result := True;
-      brows.MainFrame.LoadUrl(url);
+      brows.MainFrame.LoadUrl(targetUrl);
     end;
 end;
 

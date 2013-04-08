@@ -36,6 +36,7 @@ contains
   cefvcl in '..\src\cefvcl.pas',
   ceflib in '..\src\ceflib.pas',
   cefgui in '..\src\cefgui.pas',
-  cefreg in 'cefreg.pas';
+  cefreg in 'cefreg.pas',
+  ceffmx in '..\src\ceffmx.pas';
 
 end.

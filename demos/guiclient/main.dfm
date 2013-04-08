@@ -40,14 +40,11 @@ object MainForm: TMainForm
     OnLoadEnd = crmLoadEnd
     OnAddressChange = crmAddressChange
     OnTitleChange = crmTitleChange
+    OnStatusMessage = crmStatusMessage
     OnBeforeDownload = crmBeforeDownload
     OnDownloadUpdated = crmDownloadUpdated
     OnBeforePopup = crmBeforePopup
     OnBeforeResourceLoad = crmBeforeResourceLoad
-    Options.AcceleratedCompositingDisabled = False
-    Options.AcceleratedPaintingEnabled = False
-    Options.AcceleratedFiltersEnabled = False
-    Options.AcceleratedPluginsDisabled = False
   end
   object StatusBar: TStatusBar
     Left = 0
@@ -66,10 +63,6 @@ object MainForm: TMainForm
     DefaultUrl = 'about:blank'
     TabOrder = 2
     Visible = False
-    Options.AcceleratedCompositingDisabled = False
-    Options.AcceleratedPaintingEnabled = False
-    Options.AcceleratedFiltersEnabled = False
-    Options.AcceleratedPluginsDisabled = False
   end
   object Panel1: TPanel
     Left = 0
@@ -206,10 +199,6 @@ object MainForm: TMainForm
       Caption = 'Debug in Chrome'
       OnExecute = actChromeDevToolExecute
     end
-    object actProxy: TAction
-      Caption = 'Setup proxy address'
-      OnExecute = actProxyExecute
-    end
   end
   object MainMenu: TMainMenu
     Left = 624
@@ -256,9 +245,6 @@ object MainForm: TMainForm
       end
       object DebuginChrome1: TMenuItem
         Action = actChromeDevTool
-      end
-      object Setupproxyaddress1: TMenuItem
-        Action = actProxy
       end
     end
     object Help1: TMenuItem

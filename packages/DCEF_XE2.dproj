@@ -3,7 +3,7 @@
 			<ProjectGuid>{4C1A8E49-3C43-4DC1-89FD-6056D05B0A21}</ProjectGuid>
 			<MainSource>DCEF_XE2.dpk</MainSource>
 			<ProjectVersion>13.4</ProjectVersion>
-			<FrameworkType>None</FrameworkType>
+			<FrameworkType>FMX</FrameworkType>
 			<Base>True</Base>
 			<Config Condition="'$(Config)'==''">Debug</Config>
 			<Platform Condition="'$(Platform)'==''">Win32</Platform>
@@ -90,6 +90,7 @@
 			<DCCReference Include="..\src\ceflib.pas"/>
 			<DCCReference Include="..\src\cefgui.pas"/>
 			<DCCReference Include="cefreg.pas"/>
+			<DCCReference Include="..\src\ceffmx.pas"/>
 			<BuildConfiguration Include="Release">
 				<Key>Cfg_2</Key>
 				<CfgParent>Base</CfgParent>
