@@ -424,7 +424,7 @@ begin
   if (Browser <> nil) and (IsFocused) then
     begin
       FillChar(event, SizeOf(event), 0);
-      event.type_ := KEYEVENT_KEYDOWN;
+      event.kind := KEYEVENT_KEYDOWN;
       event.modifiers := getModifiers(Shift);
       event.windows_key_code := Key;
       Browser.Host.SendKeyEvent(@event);
@@ -1023,14 +1023,14 @@ begin
     if KeyChar <> #0 then
     begin
       FillChar(event, SizeOf(event), 0);
-      event.type_ := KEYEVENT_CHAR;
+      event.kind := KEYEVENT_CHAR;
       event.modifiers := getModifiers(Shift);
       event.windows_key_code := Ord(KeyChar);
       Browser.Host.SendKeyEvent(@event)
     end else
     begin
       FillChar(event, SizeOf(event), 0);
-      event.type_ := KEYEVENT_RAWKEYDOWN;
+      event.kind := KEYEVENT_RAWKEYDOWN;
       event.modifiers := getModifiers(Shift);
       event.windows_key_code := Key;
       Browser.Host.SendKeyEvent(@event)
@@ -1045,7 +1045,7 @@ begin
     if KeyChar = #0 then
     begin
       FillChar(event, SizeOf(event), 0);
-      event.type_ := KEYEVENT_KEYUP;
+      event.kind := KEYEVENT_KEYUP;
       event.modifiers := getModifiers(Shift);
       event.windows_key_code := Key;
       Browser.Host.SendKeyEvent(@event)
