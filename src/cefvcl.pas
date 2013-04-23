@@ -707,7 +707,10 @@ end;
 destructor TCustomChromium.Destroy;
 begin
   if FBrowser <> nil then
+  begin
+    FBrowser.StopLoad;
     FBrowser.Host.ParentWindowWillClose;
+  end;
   if FHandler <> nil then
     (FHandler as ICefClientHandler).Disconnect;
   FHandler := nil;
