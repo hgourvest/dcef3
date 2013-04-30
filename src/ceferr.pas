@@ -1,4 +1,4 @@
-unit ceferrors;
+unit ceferr;
 
 (* 
   This file contains the list of network errors.
