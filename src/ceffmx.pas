@@ -189,6 +189,7 @@ type
     function doOnGetViewRect(const browser: ICefBrowser; rect: PCefRect): Boolean;
     function doOnGetScreenPoint(const browser: ICefBrowser; viewX, viewY: Integer;
       screenX, screenY: PInteger): Boolean;
+    function doOnGetScreenInfo(const browser: ICefBrowser; screenInfo: PCefScreenInfo): Boolean;
     procedure doOnPopupShow(const browser: ICefBrowser; show: Boolean);
     procedure doOnPopupSize(const browser: ICefBrowser; const rect: PCefRect);
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
@@ -566,19 +567,20 @@ procedure TCustomChromiumFMX.doOnCursorChange(const browser: ICefBrowser;
 begin
   if browser.IsSame(Self.Browser) then
   case cursor of
-    65541: Self.Cursor := crArrow;
-    65543: Self.Cursor := crIBeam;
-    65545: Self.Cursor := crHourGlass;
-    65547: Self.Cursor := crCross;
-    65551: Self.Cursor := crSizeNWSE;
-    65553: Self.Cursor := crSizeNESW;
-    65555: Self.Cursor := crSizeWE;
-    65557: Self.Cursor := crSizeNS;
-    65559: Self.Cursor := crSizeAll;
-    65561: Self.Cursor := crNo;
-    65563: Self.Cursor := crAppStart;
-    65565: Self.Cursor := crHelp;
-    65569: Self.Cursor := crHandPoint;
+    65541: Self.Cursor := crIBeam;
+    65567: Self.Cursor := crHandPoint;
+
+//    65543: Self.Cursor := crArrow;
+//    65545: Self.Cursor := crHourGlass;
+//    65547: Self.Cursor := crCross;
+//    65551: Self.Cursor := crSizeNWSE;
+//    65553: Self.Cursor := crSizeNESW;
+//    65555: Self.Cursor := crSizeWE;
+//    65557: Self.Cursor := crSizeNS;
+//    65559: Self.Cursor := crSizeAll;
+//    65561: Self.Cursor := crNo;
+//    65563: Self.Cursor := crAppStart;
+//    65565: Self.Cursor := crHelp;
   else
     Self.Cursor := crDefault;
   end;
@@ -640,6 +642,12 @@ begin
     Result := True;
   end else
     Result := False;
+end;
+
+function TCustomChromiumFMX.doOnGetScreenInfo(const browser: ICefBrowser;
+  screenInfo: PCefScreenInfo): Boolean;
+begin
+  Result := False;
 end;
 
 function TCustomChromiumFMX.doOnGetScreenPoint(const browser: ICefBrowser;

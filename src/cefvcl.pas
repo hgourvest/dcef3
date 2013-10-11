@@ -182,6 +182,7 @@ type
     function doOnGetViewRect(const browser: ICefBrowser; rect: PCefRect): Boolean;
     function doOnGetScreenPoint(const browser: ICefBrowser; viewX, viewY: Integer;
       screenX, screenY: PInteger): Boolean;
+    function doOnGetScreenInfo(const browser: ICefBrowser; screenInfo: PCefScreenInfo): Boolean;
     procedure doOnPopupShow(const browser: ICefBrowser; show: Boolean);
     procedure doOnPopupSize(const browser: ICefBrowser; const rect: PCefRect);
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
@@ -297,6 +298,7 @@ type
     FOnGetRootScreenRect: TOnGetRootScreenRect;
     FOnGetViewRect: TOnGetViewRect;
     FOnGetScreenPoint: TOnGetScreenPoint;
+    FOnGetScreenInfo: TOnGetScreenInfo;
     FOnPopupShow: TOnPopupShow;
     FOnPopupSize: TOnPopupSize;
     FOnPaint: TOnPaint;
@@ -399,6 +401,7 @@ type
     function doOnGetViewRect(const browser: ICefBrowser; rect: PCefRect): Boolean;
     function doOnGetScreenPoint(const browser: ICefBrowser; viewX, viewY: Integer;
       screenX, screenY: PInteger): Boolean;
+    function doOnGetScreenInfo(const browser: ICefBrowser; screenInfo: PCefScreenInfo): Boolean;
     procedure doOnPopupShow(const browser: ICefBrowser; show: Boolean);
     procedure doOnPopupSize(const browser: ICefBrowser; const rect: PCefRect);
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
@@ -450,6 +453,7 @@ type
     property OnGetRootScreenRect: TOnGetRootScreenRect read FOnGetRootScreenRect write FOnGetRootScreenRect;
     property OnGetViewRect: TOnGetViewRect read FOnGetViewRect write FOnGetViewRect;
     property OnGetScreenPoint: TOnGetScreenPoint read FOnGetScreenPoint write FOnGetScreenPoint;
+    property OnGetScreenInfo: TOnGetScreenInfo read FOnGetScreenInfo write FOnGetScreenInfo;
     property OnPopupShow: TOnPopupShow read FOnPopupShow write FOnPopupShow;
     property OnPopupSize: TOnPopupSize read FOnPopupSize write FOnPopupSize;
     property OnPaint: TOnPaint read FOnPaint write FOnPaint;
@@ -1010,6 +1014,12 @@ begin
   Result := False;
 end;
 
+function TCustomChromium.doOnGetScreenInfo(const browser: ICefBrowser;
+  screenInfo: PCefScreenInfo): Boolean;
+begin
+  Result := False;
+end;
+
 function TCustomChromium.doOnGetScreenPoint(const browser: ICefBrowser; viewX,
   viewY: Integer; screenX, screenY: PInteger): Boolean;
 begin
@@ -1503,6 +1513,14 @@ begin
   Result := False;
   if Assigned(FOnGetRootScreenRect) then
     FOnGetRootScreenRect(Self, browser, rect, Result);
+end;
+
+function TCustomChromiumOSR.doOnGetScreenInfo(const browser: ICefBrowser;
+  screenInfo: PCefScreenInfo): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnGetScreenInfo) then
+    FOnGetScreenInfo(Self, browser, screenInfo, Result);
 end;
 
 function TCustomChromiumOSR.doOnGetScreenPoint(const browser: ICefBrowser; viewX,

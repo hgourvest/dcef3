@@ -119,6 +119,8 @@ type
     rect: PCefRect; out Result: Boolean) of Object;
   TOnGetScreenPoint = procedure(Sender: TObject; const browser: ICefBrowser;
     viewX, viewY: Integer; screenX, screenY: PInteger; out Result: Boolean) of Object;
+  TOnGetScreenInfo = procedure(Sender: TObject; const browser: ICefBrowser;
+    screenInfo: PCefScreenInfo; Result: Boolean) of Object;
   TOnPopupShow = procedure(Sender: TObject; const browser: ICefBrowser;
     show: Boolean) of Object;
   TOnPopupSize = procedure(Sender: TObject; const browser: ICefBrowser;
@@ -297,6 +299,7 @@ type
     function doOnGetViewRect(const browser: ICefBrowser; rect: PCefRect): Boolean;
     function doOnGetScreenPoint(const browser: ICefBrowser; viewX, viewY: Integer;
       screenX, screenY: PInteger): Boolean;
+    function doOnGetScreenInfo(const browser: ICefBrowser; screenInfo: PCefScreenInfo): Boolean;
     procedure doOnPopupShow(const browser: ICefBrowser; show: Boolean);
     procedure doOnPopupSize(const browser: ICefBrowser; const rect: PCefRect);
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
@@ -515,6 +518,8 @@ type
       dirtyRectsCount: Cardinal; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer); override;
     procedure OnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle); override;
+    function GetScreenInfo(const browser: ICefBrowser;
+      screenInfo: PCefScreenInfo): Boolean; override;
   public
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
   end;
@@ -999,6 +1004,12 @@ function TCustomRenderHandler.GetRootScreenRect(const browser: ICefBrowser;
   rect: PCefRect): Boolean;
 begin
   Result := FEvent.doOnGetRootScreenRect(browser, rect);
+end;
+
+function TCustomRenderHandler.GetScreenInfo(const browser: ICefBrowser;
+  screenInfo: PCefScreenInfo): Boolean;
+begin
+  Result := FEvent.doOnGetScreenInfo(browser, screenInfo);
 end;
 
 function TCustomRenderHandler.GetScreenPoint(const browser: ICefBrowser; viewX,

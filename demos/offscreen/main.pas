@@ -45,7 +45,7 @@ begin
     WM_CHAR:
      begin
        FillChar(event, SizeOf(TCefKeyEvent), 0);
-       event.type_ := KEYEVENT_CHAR;
+       event.kind := KEYEVENT_CHAR;
        event.windows_key_code := Msg.wParam;
        event.native_key_code := Msg.lParam;
        chrmosr.Browser.Host.SendKeyEvent(@event);
