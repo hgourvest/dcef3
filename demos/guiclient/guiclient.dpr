@@ -15,8 +15,6 @@ begin
   registrar.AddCustomScheme('local', True, True, False);
 end;
 
-var
-  proc: string;
 begin
   CefOnRegisterCustomSchemes := RegisterSchemes;
   CefSingleProcess := False;

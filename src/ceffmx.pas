@@ -28,7 +28,7 @@ uses
 {$ifdef MSWINDOWS}
   Messages, Windows,
 {$endif}
-  FMX.Types, FMX.Platform, System.Types, ceflib, cefgui;
+  FMX.Types, FMX.Platform, FMX.Controls, System.Types, ceflib, cefgui;
 
 type
   TCustomChromiumFMX = class(TControl, IChromiumEvents)
@@ -64,6 +64,7 @@ type
     FOnJsdialog: TOnJsdialog;
     FOnBeforeUnloadDialog: TOnBeforeUnloadDialog;
     FOnResetDialogState: TOnResetDialogState;
+    FOnDialogClosed: TOnDialogClosed;
     FOnBeforePopup: TOnBeforePopup;
     FOnAfterCreated: TOnAfterCreated;
     FOnBeforeClose: TOnBeforeClose;
@@ -78,7 +79,8 @@ type
     FOnProtocolExecution: TOnProtocolExecution;
     FOnBeforePluginLoad: TOnBeforePluginLoad;
     FOnFileDialog: TOnFileDialog;
-
+    FOnDragEnter: TOnDragEnter;
+
     FOptions: TChromiumOptions;
     FUserStyleSheetLocation: ustring;
     FDefaultEncoding: ustring;
@@ -152,8 +154,9 @@ type
       const messageText: ustring; isReload: Boolean;
       const callback: ICefJsDialogCallback): Boolean; virtual;
     procedure doOnResetDialogState(const browser: ICefBrowser); virtual;
+    procedure doOnDialogClosed(const browser: ICefBrowser);
 
-    function doOnBeforePopup(const browser: ICefBrowser;
+    function doOnBeforePopup(const browser: ICefBrowser;
       const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var client: ICefClient; var settings: TCefBrowserSettings;
@@ -193,9 +196,13 @@ type
     procedure doOnPopupShow(const browser: ICefBrowser; show: Boolean);
     procedure doOnPopupSize(const browser: ICefBrowser; const rect: PCefRect);
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
-      dirtyRectsCount: Cardinal; const dirtyRects: PCefRectArray;
+      dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
     procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
+    procedure doOnScrollOffsetChanged(const browser: ICefBrowser);
+
+    function doOnDragEnter(const browser: ICefBrowser; const dragData: ICefDragData;
+      mask: TCefDragOperations): Boolean;
 
     property OnProcessMessageReceived: TOnProcessMessageReceived read FOnProcessMessageReceived write FOnProcessMessageReceived;
     property OnLoadStart: TOnLoadStart read FOnLoadStart write FOnLoadStart;
@@ -224,6 +231,7 @@ type
     property OnJsdialog: TOnJsdialog read FOnJsdialog write FOnJsdialog;
     property OnBeforeUnloadDialog: TOnBeforeUnloadDialog read FOnBeforeUnloadDialog write FOnBeforeUnloadDialog;
     property OnResetDialogState: TOnResetDialogState read FOnResetDialogState write FOnResetDialogState;
+    property OnDialogClosed: TOnDialogClosed read FOnDialogClosed write FOnDialogClosed;
     property OnBeforePopup: TOnBeforePopup read FOnBeforePopup write FOnBeforePopup;
     property OnAfterCreated: TOnAfterCreated read FOnAfterCreated write FOnAfterCreated;
     property OnBeforeClose: TOnBeforeClose read FOnBeforeClose write FOnBeforeClose;
@@ -238,6 +246,7 @@ type
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
     property OnBeforePluginLoad: TOnBeforePluginLoad read FOnBeforePluginLoad write FOnBeforePluginLoad;
     property OnFileDialog: TOnFileDialog read FOnFileDialog write FOnFileDialog;
+    property OnDragEnter: TOnDragEnter read FOnDragEnter write FOnDragEnter;
 
     property DefaultUrl: ustring read FDefaultUrl write FDefaultUrl;
     property Options: TChromiumOptions read FOptions write FOptions;
@@ -289,6 +298,7 @@ type
     property OnJsdialog;
     property OnBeforeUnloadDialog;
     property OnResetDialogState;
+    property OnDialogClosed;
     property OnBeforePopup;
     property OnAfterCreated;
     property OnBeforeClose;
@@ -303,6 +313,7 @@ type
     property OnProtocolExecution;
     property OnBeforePluginLoad;
     property OnFileDialog;
+    property OnDragEnter;
 
     property Options;
     property FontOptions;
@@ -354,7 +365,7 @@ end;
 type
   TFMXClientHandler = class(TCustomClientHandler)
   public
-    constructor Create(const crm: IChromiumEvents); override;
+    constructor Create(const crm: IChromiumEvents; renderer: Boolean); override;
     destructor Destroy; override;
   end;
 
@@ -366,7 +377,7 @@ begin
   CanFocus := True;
 
   if not (csDesigning in ComponentState) then
-    FHandler := TFMXClientHandler.Create(Self);
+    FHandler := TFMXClientHandler.Create(Self, True);
 
   FBuffer := nil;
 
@@ -567,23 +578,28 @@ procedure TCustomChromiumFMX.doOnCursorChange(const browser: ICefBrowser;
 begin
   if browser.IsSame(Self.Browser) then
   case cursor of
-    65541: Self.Cursor := crIBeam;
-    65567: Self.Cursor := crHandPoint;
-
-//    65543: Self.Cursor := crArrow;
-//    65545: Self.Cursor := crHourGlass;
-//    65547: Self.Cursor := crCross;
-//    65551: Self.Cursor := crSizeNWSE;
-//    65553: Self.Cursor := crSizeNESW;
-//    65555: Self.Cursor := crSizeWE;
-//    65557: Self.Cursor := crSizeNS;
-//    65559: Self.Cursor := crSizeAll;
-//    65561: Self.Cursor := crNo;
-//    65563: Self.Cursor := crAppStart;
-//    65565: Self.Cursor := crHelp;
+    65541: Self.Cursor := crArrow;
+    65543: Self.Cursor := crIBeam;
+    65545: Self.Cursor := crHourGlass;
+    65547: Self.Cursor := crCross;
+    65551: Self.Cursor := crSizeNWSE;
+    65553: Self.Cursor := crSizeNESW;
+    65555: Self.Cursor := crSizeWE;
+    65557: Self.Cursor := crSizeNS;
+    65559: Self.Cursor := crSizeAll;
+    65561: Self.Cursor := crNo;
+    65563: Self.Cursor := crAppStart;
+    65565: Self.Cursor := crHelp;
+    65569: Self.Cursor := crHandPoint;
   else
     Self.Cursor := crDefault;
   end;
+end;
+
+procedure TCustomChromiumFMX.doOnDialogClosed(const browser: ICefBrowser);
+begin
+  if Assigned(FOnDialogClosed) then
+    FOnDialogClosed(Self, browser);
 end;
 
 procedure TCustomChromiumFMX.doOnDownloadUpdated(const browser: ICefBrowser;
@@ -592,6 +608,14 @@ procedure TCustomChromiumFMX.doOnDownloadUpdated(const browser: ICefBrowser;
 begin
   if Assigned(FOnDownloadUpdated) then
     FOnDownloadUpdated(Self, browser, downloadItem, callback);
+end;
+
+function TCustomChromiumFMX.doOnDragEnter(const browser: ICefBrowser;
+  const dragData: ICefDragData; mask: TCefDragOperations): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnDragEnter) then
+    FOnDragEnter(Self, browser, dragData, mask, Result);
 end;
 
 function TCustomChromiumFMX.doOnFileDialog(const browser: ICefBrowser;
@@ -725,7 +749,7 @@ begin
 end;
 
 procedure TCustomChromiumFMX.doOnPaint(const browser: ICefBrowser;
-  kind: TCefPaintElementType; dirtyRectsCount: Cardinal;
+  kind: TCefPaintElementType; dirtyRectsCount: NativeUInt;
   const dirtyRects: PCefRectArray; const buffer: Pointer;
   width, height: Integer);
 var
@@ -847,6 +871,12 @@ begin
     FOnRunModal(Self, browser, Result);
 end;
 
+procedure TCustomChromiumFMX.doOnScrollOffsetChanged(
+  const browser: ICefBrowser);
+begin
+
+end;
+
 function TCustomChromiumFMX.doOnSetFocus(const browser: ICefBrowser;
   source: TCefFocusSource): Boolean;
 begin
@@ -915,7 +945,6 @@ begin
   settings.image_loading := FOptions.ImageLoading;
   settings.image_shrink_standalone_to_fit := FOptions.ImageShrinkStandaloneToFit;
   settings.text_area_resize := FOptions.TextAreaResize;
-  settings.page_cache := FOptions.PageCache;
   settings.tab_to_links := FOptions.TabToLinks;
   settings.author_and_user_styles := FOptions.AuthorAndUserStyles;
   settings.local_storage := FOptions.LocalStorage;
@@ -923,7 +952,6 @@ begin
   settings.application_cache := FOptions.ApplicationCache;
   settings.webgl := FOptions.Webgl;
   settings.accelerated_compositing := FOptions.AcceleratedCompositing;
-  settings.developer_tools := FOptions.DeveloperTools;
 end;
 
 procedure TCustomChromiumFMX.Load(const url: ustring);
@@ -1110,7 +1138,7 @@ begin
 end;
 {$ENDIF}
 
-constructor TFMXClientHandler.Create(const crm: IChromiumEvents);
+constructor TFMXClientHandler.Create(const crm: IChromiumEvents; renderer: Boolean);
 begin
   inherited;
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}

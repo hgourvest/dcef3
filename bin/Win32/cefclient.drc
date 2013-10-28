@@ -18,10 +18,6 @@
 #define System_RTLConsts_sObserverNoInterface 65367
 #define System_RTLConsts_sObserverNoSinglecastFound 65368
 #define System_RTLConsts_sObserverNoMulticastFound 65369
-#define System_Win_ComConst_SOleError 65370
-#define System_Win_ComConst_SNoMethod 65371
-#define System_Win_ComConst_SVarNotObject 65372
-#define System_Win_ComConst_STooManyParams 65373
 #define System_RTLConsts_sTimespanTooLong 65376
 #define System_RTLConsts_sInvalidTimespanDuration 65377
 #define System_RTLConsts_sTimespanValueCannotBeNan 65378
@@ -194,10 +190,6 @@ BEGIN
 	System_RTLConsts_sObserverNoInterface,	L"L'objet n'impl\x00e9mente pas l'interface de l'observateur"
 	System_RTLConsts_sObserverNoSinglecastFound,	L"Aucun observateur mono-transtypage avec l'ID %s n'a \x00e9t\x00e9 ajout\x00e9 \x00e0 la collection d'observateurs"
 	System_RTLConsts_sObserverNoMulticastFound,	L"Aucun observateur multi-transtypage avec l'ID %s n'a \x00e9t\x00e9 ajout\x00e9 \x00e0 la collection d'observateurs"
-	System_Win_ComConst_SOleError,	L"Erreur OLE %.8x"
-	System_Win_ComConst_SNoMethod,	L"M\x00e9thode '%s' non support\x00e9e par l'objet Automation"
-	System_Win_ComConst_SVarNotObject,	L"Le variant ne r\x00e9f\x00e9rence pas un objet Automation"
-	System_Win_ComConst_STooManyParams,	L"Les m\x00e9thodes Dispatch ne g\x00e8rent pas plus de 64 param\x00e8tres"
 	System_RTLConsts_sTimespanTooLong,	L"Timespan trop long"
 	System_RTLConsts_sInvalidTimespanDuration,	L"La dur\x00e9e ne peut pas \x00eatre renvoy\x00e9e car la valeur absolue d\x00e9passe la valeur de TTimeSpan.MaxValue"
 	System_RTLConsts_sTimespanValueCannotBeNan,	L"La valeur ne peut pas \x00eatre NaN"

@@ -7,11 +7,6 @@
 program cefclient;
 
 uses
-  madExcept,
-  madLinkDisAsm,
-  madListHardware,
-  madListProcesses,
-  madListModules,
   Classes,
   Windows,
   Messages,
@@ -379,7 +374,7 @@ begin
   //CefCache := 'cache';
   //navigateto := 'client://test/';
   //navigateto := 'local://c:\';
-
+  CefLogSeverity := LOGSEVERITY_WARNING;
   CefOnRegisterCustomSchemes := RegisterSchemes;
 
   // multi process

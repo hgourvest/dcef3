@@ -22,7 +22,7 @@ type
     procedure chrmosrCursorChange(Sender: TObject; const browser: ICefBrowser;
       cursor: HICON);
     procedure chrmosrPaint(Sender: TObject; const browser: ICefBrowser;
-      kind: TCefPaintElementType; dirtyRectsCount: Cardinal;
+      kind: TCefPaintElementType; dirtyRectsCount: NativeUInt;
       const dirtyRects: PCefRectArray; const buffer: Pointer; width,
       height: Integer);
     procedure chrmosrGetRootScreenRect(Sender: TObject;
@@ -71,7 +71,7 @@ begin
 end;
 
 procedure TMainform.chrmosrPaint(Sender: TObject; const browser: ICefBrowser;
-  kind: TCefPaintElementType; dirtyRectsCount: Cardinal;
+  kind: TCefPaintElementType; dirtyRectsCount: NativeUInt;
   const dirtyRects: PCefRectArray; const buffer: Pointer; width, height: Integer);
 var
   src, dst: PByte;

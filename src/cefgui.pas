@@ -78,7 +78,8 @@ type
     const messageText: ustring; isReload: Boolean;
     const callback: ICefJsDialogCallback; out Result: Boolean) of object;
   TOnResetDialogState = procedure(Sender: TObject; const browser: ICefBrowser) of object;
-  TOnBeforePopup = procedure(Sender: TObject; const browser: ICefBrowser;
+  TOnDialogClosed = procedure(Sender: TObject; const browser: ICefBrowser) of object;
+  TOnBeforePopup = procedure(Sender: TObject; const browser: ICefBrowser;
     const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
     var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
     var client: ICefClient; var settings: TCefBrowserSettings;
@@ -126,10 +127,14 @@ type
   TOnPopupSize = procedure(Sender: TObject; const browser: ICefBrowser;
     const rect: PCefRect) of Object;
   TOnPaint = procedure(Sender: TObject; const browser: ICefBrowser;
-    kind: TCefPaintElementType; dirtyRectsCount: Cardinal; const dirtyRects: PCefRectArray;
+    kind: TCefPaintElementType; dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
     const buffer: Pointer; width, height: Integer) of Object;
   TOnCursorChange = procedure(Sender: TObject; const browser: ICefBrowser;
     cursor: TCefCursorHandle) of Object;
+  TOnScrollOffsetChanged = procedure(Sender: TObject; const browser: ICefBrowser) of Object;
+
+  TOnDragEnter = procedure(Sender: TObject; const browser: ICefBrowser;
+    const dragData: ICefDragData; mask: TCefDragOperations; out Result: Boolean) of Object;
 
   TChromiumOptions = class(TPersistent)
   private
@@ -147,7 +152,6 @@ type
     FImageLoading: TCefState;
     FImageShrinkStandaloneToFit: TCefState;
     FTextAreaResize: TCefState;
-    FPageCache: TCefState;
     FTabToLinks: TCefState;
     FAuthorAndUserStyles: TCefState;
     FLocalStorage: TCefState;
@@ -155,7 +159,6 @@ type
     FApplicationCache: TCefState;
     FWebgl: TCefState;
     FAcceleratedCompositing: TCefState;
-    FDeveloperTools: TCefState;
   published
     property Javascript: TCefState read FJavascript write FJavascript default STATE_DEFAULT;
     property JavascriptOpenWindows: TCefState read FJavascriptOpenWindows write FJavascriptOpenWindows default STATE_DEFAULT;
@@ -171,7 +174,6 @@ type
     property ImageLoading: TCefState read FImageLoading write FImageLoading default STATE_DEFAULT;
     property ImageShrinkStandaloneToFit: TCefState read FImageShrinkStandaloneToFit write FImageShrinkStandaloneToFit default STATE_DEFAULT;
     property TextAreaResize: TCefState read FTextAreaResize write FTextAreaResize default STATE_DEFAULT;
-    property PageCache: TCefState read FPageCache write FPageCache default STATE_DEFAULT;
     property TabToLinks: TCefState read FTabToLinks write FTabToLinks default STATE_DEFAULT;
     property AuthorAndUserStyles: TCefState read FAuthorAndUserStyles write FAuthorAndUserStyles default STATE_DEFAULT;
     property LocalStorage: TCefState read FLocalStorage write FLocalStorage default STATE_DEFAULT;
@@ -179,7 +181,6 @@ type
     property ApplicationCache: TCefState read FApplicationCache write FApplicationCache default STATE_DEFAULT;
     property Webgl: TCefState read FWebgl write FWebgl default STATE_DEFAULT;
     property AcceleratedCompositing: TCefState read FAcceleratedCompositing write FAcceleratedCompositing default STATE_DEFAULT;
-    property DeveloperTools: TCefState read FDeveloperTools write FDeveloperTools default STATE_DEFAULT;
   end;
 
   TChromiumFontOptions = class(TPersistent)
@@ -264,6 +265,7 @@ type
       const messageText: ustring; isReload: Boolean;
       const callback: ICefJsDialogCallback): Boolean;
     procedure doOnResetDialogState(const browser: ICefBrowser);
+    procedure doOnDialogClosed(const browser: ICefBrowser);
 
     function doOnBeforePopup(const browser: ICefBrowser;
       const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
@@ -303,9 +305,13 @@ type
     procedure doOnPopupShow(const browser: ICefBrowser; show: Boolean);
     procedure doOnPopupSize(const browser: ICefBrowser; const rect: PCefRect);
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
-      dirtyRectsCount: Cardinal; const dirtyRects: PCefRectArray;
+      dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
     procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
+    procedure doOnScrollOffsetChanged(const browser: ICefBrowser);
+
+    function doOnDragEnter(const browser: ICefBrowser; const dragData: ICefDragData;
+      mask: TCefDragOperations): Boolean;
   end;
 
   ICefClientHandler = interface
@@ -328,6 +334,7 @@ type
     FLifeSpanHandler: ICefLifeSpanHandler;
     FRenderHandler: ICefRenderHandler;
     FRequestHandler: ICefRequestHandler;
+    FDragHandler: ICefDragHandler;
   protected
     function GetContextMenuHandler: ICefContextMenuHandler; override;
     function GetDialogHandler: ICefDialogHandler; override;
@@ -343,9 +350,10 @@ type
     function GetRequestHandler: ICefRequestHandler; override;
     function OnProcessMessageReceived(const browser: ICefBrowser;
       sourceProcess: TCefProcessId; const message: ICefProcessMessage): Boolean; override;
+
     procedure Disconnect;
   public
-    constructor Create(const events: IChromiumEvents); reintroduce; virtual;
+    constructor Create(const events: IChromiumEvents; renderer: Boolean); reintroduce; virtual;
   end;
 
   TCustomClientHandlerClass = class of TCustomClientHandler;
@@ -461,6 +469,7 @@ type
       const messageText: ustring; isReload: Boolean;
       const callback: ICefJsDialogCallback): Boolean; override;
     procedure OnResetDialogState(const browser: ICefBrowser); override;
+    procedure OnDialogClosed(const browser: ICefBrowser); override;
   public
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
   end;
@@ -515,11 +524,22 @@ type
     procedure OnPopupShow(const browser: ICefBrowser; show: Boolean); override;
     procedure OnPopupSize(const browser: ICefBrowser; const rect: PCefRect); override;
     procedure OnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
-      dirtyRectsCount: Cardinal; const dirtyRects: PCefRectArray;
+      dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer); override;
     procedure OnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle); override;
     function GetScreenInfo(const browser: ICefBrowser;
       screenInfo: PCefScreenInfo): Boolean; override;
+    procedure OnScrollOffsetChanged(const browser: ICefBrowser); override;
+  public
+    constructor Create(const events: IChromiumEvents); reintroduce; virtual;
+  end;
+
+  TCustomDragHandler = class(TCefDragHandlerOwn)
+  private
+    FEvent: IChromiumEvents;
+  protected
+    function OnDragEnter(const browser: ICefBrowser;
+      const dragData: ICefDragData; mask: TCefDragOperations): Boolean; override;
   public
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
   end;
@@ -545,7 +565,7 @@ end;
 
 { TCefCustomHandler }
 
-constructor TCustomClientHandler.Create(const events: IChromiumEvents);
+constructor TCustomClientHandler.Create(const events: IChromiumEvents; renderer: Boolean);
 begin
   inherited Create;
   FEvents := events;
@@ -560,7 +580,10 @@ begin
   FJsDialogHandler := TCustomJsDialogHandler.Create(events);
   FLifeSpanHandler := TCustomLifeSpanHandler.Create(events);
   FRequestHandler := TCustomRequestHandler.Create(events);
-  FRenderHandler := TCustomRenderHandler.Create(events);
+  if renderer then
+    FRenderHandler := TCustomRenderHandler.Create(events) else
+    FRenderHandler := nil;
+  FDragHandler := TCustomDragHandler.Create(events);
 end;
 
 procedure TCustomClientHandler.Disconnect;
@@ -578,6 +601,7 @@ begin
   FLifeSpanHandler := nil;
   FRequestHandler := nil;
   FRenderHandler := nil;
+  FDragHandler := nil;
 end;
 
 function TCustomClientHandler.GetContextMenuHandler: ICefContextMenuHandler;
@@ -864,6 +888,11 @@ begin
   Result := FEvent.doOnBeforeUnloadDialog(browser, messageText, isReload, callback);
 end;
 
+procedure TCustomJsDialogHandler.OnDialogClosed(const browser: ICefBrowser);
+begin
+  FEvent.doOnDialogClosed(browser);
+end;
+
 function TCustomJsDialogHandler.OnJsdialog(const browser: ICefBrowser;
   const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
   const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
@@ -1031,7 +1060,7 @@ begin
 end;
 
 procedure TCustomRenderHandler.OnPaint(const browser: ICefBrowser;
-  kind: TCefPaintElementType; dirtyRectsCount: Cardinal;
+  kind: TCefPaintElementType; dirtyRectsCount: NativeUInt;
   const dirtyRects: PCefRectArray; const buffer: Pointer; width, height: Integer);
 begin
   FEvent.doOnPaint(browser, kind, dirtyRectsCount, dirtyRects, buffer, width, height);
@@ -1049,6 +1078,24 @@ begin
   FEvent.doOnPopupSize(browser, rect);
 end;
 
+procedure TCustomRenderHandler.OnScrollOffsetChanged(
+  const browser: ICefBrowser);
+begin
+  FEvent.doOnScrollOffsetChanged(browser);
+end;
 
+{ TCustomDragHandler }
+
+constructor TCustomDragHandler.Create(const events: IChromiumEvents);
+begin
+  inherited Create;
+  FEvent := events;
+end;
+
+function TCustomDragHandler.OnDragEnter(const browser: ICefBrowser;
+  const dragData: ICefDragData; mask: TCefDragOperations): Boolean;
+begin
+  Result := FEvent.doOnDragEnter(browser, dragData, mask);
+end;
 
 end.
