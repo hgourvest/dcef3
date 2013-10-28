@@ -65,6 +65,12 @@ type
   UInt64 = Int64;
 {$ifend}
 
+{$ifndef DELPHI16_UP}
+  NativeUInt = Cardinal;
+  PNativeUInt = ^NativeUInt;
+  NativeInt = Integer;
+{$endif}
+
   TCefWindowHandle = {$IFDEF MACOS}Pointer{$ELSE}HWND{$ENDIF};
   TCefCursorHandle = {$IFDEF MACOS}Pointer{$ELSE}HCURSOR{$ENDIF};
   TCefEventHandle  = {$IFDEF MACOS}Pointer{$ELSE}PMsg{$ENDIF};
