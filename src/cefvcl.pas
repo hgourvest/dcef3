@@ -610,6 +610,7 @@ type
     property OnPopupSize;
     property OnPaint;
     property OnCursorChange;
+    property OnScrollOffsetChanged;
     property OnDragEnter;
 
     property Options;
