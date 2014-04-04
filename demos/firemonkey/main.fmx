@@ -1,9 +1,11 @@
 object MainForm: TMainForm
   Left = 0
   Top = 0
+  BiDiMode = bdLeftToRight
   Caption = 'Chromium'
   ClientHeight = 500
   ClientWidth = 700
+  Transparency = False
   Visible = False
   OnCreate = FormCreate
   StyleLookup = 'backgroundstyle'
@@ -26,6 +28,8 @@ object MainForm: TMainForm
     Height = 24.000000000000000000
     OnClick = btPrevClick
     TabOrder = 1
+    StaysPressed = False
+    IsPressed = False
     Text = '<-'
   end
   object btNext: TButton
@@ -35,6 +39,8 @@ object MainForm: TMainForm
     Height = 24.000000000000000000
     OnClick = btNextClick
     TabOrder = 2
+    StaysPressed = False
+    IsPressed = False
     Text = '->'
   end
   object btHome: TButton
@@ -44,6 +50,8 @@ object MainForm: TMainForm
     Height = 24.000000000000000000
     OnClick = btHomeClick
     TabOrder = 3
+    StaysPressed = False
+    IsPressed = False
     Text = 'H'
   end
   object btReload: TButton
@@ -53,6 +61,8 @@ object MainForm: TMainForm
     Height = 24.000000000000000000
     OnClick = btReloadClick
     TabOrder = 4
+    StaysPressed = False
+    IsPressed = False
     Text = 'R'
   end
   object btLaunch: TButton
@@ -62,6 +72,8 @@ object MainForm: TMainForm
     Height = 24.000000000000000000
     OnClick = btLaunchClick
     TabOrder = 5
+    StaysPressed = False
+    IsPressed = False
     Text = '>'
   end
   object edAddress: TEdit
@@ -71,7 +83,7 @@ object MainForm: TMainForm
     Height = 24.000000000000000000
     OnKeyDown = edAddressKeyDown
     TabOrder = 6
-    KeyboardType = vktDefault
+    ReadOnly = False
     Password = False
   end
 end

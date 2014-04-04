@@ -226,6 +226,24 @@ type
   end;
 {$ENDIF}
 
+// 32-bit ARGB color value, not premultiplied. The color components are always
+// in a known order. Equivalent to the SkColor type.
+
+  TCefColor = Cardinal;
+
+// Return the alpha byte from a cef_color_t value.
+function CefColorGetA(color: TCefColor): Byte;
+// Return the red byte from a cef_color_t value.
+function CefColorGetR(color: TCefColor): Byte;
+// Return the green byte from a cef_color_t value.
+function CefColorGetG(color: TCefColor): Byte;
+// Return the blue byte from a cef_color_t value.
+function CefColorGetB(color: TCefColor): Byte;
+
+// Return an cef_color_t value with the specified byte component values.
+function CefColorSetARGB(a, r, g, b: Byte): TCefColor;
+
+type
   // Log severity levels.
   TCefLogSeverity = (
     // Default logging (currently INFO logging).
@@ -289,8 +307,9 @@ type
     command_line_args_disabled: Boolean;
 
     // The location where cache data will be stored on disk. If empty an in-memory
-    // cache will be used. HTML5 databases such as localStorage will only persist
-    // across sessions if a cache path is specified.
+    // cache will be used for some features and a temporary disk cache for others.
+    // HTML5 databases such as localStorage will only persist across sessions if a
+    // cache path is specified.
     cache_path: TCefString;
 
     // To persist session cookies (cookies without an expiry date or validity
@@ -401,6 +420,10 @@ type
     // internet should not enable this setting. Also configurable using the
     // "ignore-certificate-errors" command-line switch.
     ignore_certificate_errors: Boolean;
+
+    // Used on Mac OS X to specify the background color for hardware accelerated
+    // content.
+    background_color: TCefColor;
   end;
 
   // Browser initialization settings. Specify NULL or 0 to get the recommended
@@ -758,6 +781,97 @@ type
     PDE_TYPE_FILE
   );
 
+  // Resource type for a request.
+  TCefResourceType = (
+    // Top level page.
+    RT_MAIN_FRAME = 0,
+    // Frame or iframe.
+    RT_SUB_FRAME,
+    // CSS stylesheet.
+    RT_STYLESHEET,
+    // External script.
+    RT_SCRIPT,
+    // Image (jpg/gif/png/etc).
+    RT_IMAGE,
+    // Font.
+    RT_FONT_RESOURCE,
+    // Some other subresource. This is the default type if the actual type is
+    // unknown.
+    RT_SUB_RESOURCE,
+    // Object (or embed) tag for a plugin, or a resource that a plugin requested.
+    RT_OBJECT,
+    // Media resource.
+    RT_MEDIA,
+    // Main resource of a dedicated worker.
+    RT_WORKER,
+    // Main resource of a shared worker.
+    RT_SHARED_WORKER,
+    // Explicitly requested prefetch.
+    RT_PREFETCH,
+    // Favicon.
+    RT_FAVICON,
+    // XMLHttpRequest.
+    RT_XHR
+  );
+
+  // Transition type for a request. Made up of one source value and 0 or more
+  // qualifiers.
+  TCefTransitionType = Integer;
+const
+    // Source is a link click or the JavaScript window.open function. This is
+    // also the default value for requests like sub-resource loads that are not
+    // navigations.
+    TT_LINK = 0;
+    // Source is some other "explicit" navigation action such as creating a new
+    // browser or using the LoadURL function. This is also the default value
+    // for navigations where the actual type is unknown.
+    TT_EXPLICIT = 1;
+    // Source is a subframe navigation. This is any content that is automatically
+    // loaded in a non-toplevel frame. For example, if a page consists of several
+    // frames containing ads, those ad URLs will have this transition type.
+    // The user may not even realize the content in these pages is a separate
+    // frame, so may not care about the URL.
+    TT_AUTO_SUBFRAME = 3;
+    // Source is a subframe navigation explicitly requested by the user that will
+    // generate new navigation entries in the back/forward list. These are
+    // probably more important than frames that were automatically loaded in
+    // the background because the user probably cares about the fact that this
+    // link was loaded.
+    TT_MANUAL_SUBFRAME = 4;
+    // Source is a form submission by the user. NOTE: In some situations
+    // submitting a form does not result in this transition type. This can happen
+    // if the form uses a script to submit the contents.
+    TT_FORM_SUBMIT = 7;
+    // Source is a "reload" of the page via the Reload function or by re-visiting
+    // the same URL. NOTE: This is distinct from the concept of whether a
+    // particular load uses "reload semantics" (i.e. bypasses cached data).
+    TT_RELOAD = 8;
+    // General mask defining the bits used for the source values.
+    TT_SOURCE_MASK = $FF;
+
+    // Qualifiers.
+    // Any of the core values above can be augmented by one or more qualifiers.
+    // These qualifiers further define the transition.
+
+    // Attempted to visit a URL but was blocked.
+    TT_BLOCKED_FLAG = $00800000;
+    // Used the Forward or Back function to navigate among browsing history.
+    TT_FORWARD_BACK_FLAG = $01000000;
+    // The beginning of a navigation chain.
+    TT_CHAIN_START_FLAG = $10000000;
+    // The last transition in a redirect chain.
+    TT_CHAIN_END_FLAG = $20000000;
+    // Redirects caused by JavaScript or a meta refresh tag on the page.
+    TT_CLIENT_REDIRECT_FLAG = $40000000;
+    // Redirects sent from the server by HTTP headers.
+    TT_SERVER_REDIRECT_FLAG = $80000000;
+    // Used to test whether a transition involves a redirect.
+    TT_IS_REDIRECT_MASK = $C0000000;
+    // General mask defining the bits used for the qualifiers.
+    TT_QUALIFIER_MASK = $FFFFFF00;
+//  );
+
+type
   // Flags used to customize the behavior of CefURLRequest.
   TCefUrlRequestFlag = (
     // Default behavior.
@@ -1387,6 +1501,8 @@ type
   PCefScreenInfo = ^TCefScreenInfo;
   PCefDragData = ^TCefDragData;
   PCefDragHandler = ^TCefDragHandler;
+  PCefRequestContextHandler = ^TCefRequestContextHandler;
+  PCefRequestContext = ^TCefRequestContext;
 
   // Structure defining the reference count implementation functions. All
   // framework structures must include the cef_base_t structure first.
@@ -1838,6 +1954,9 @@ type
     // Returns the client for this browser.
     get_client: function(self: PCefBrowserHost): PCefClient; stdcall;
 
+    // Returns the request context for this browser.
+    get_request_context: function(self: PCefBrowserHost): PCefRequestContext; stdcall;
+
     // Returns the DevTools URL for this browser. If |http_scheme| is true (1) the
     // returned URL will use the http scheme instead of the chrome-devtools
     // scheme. Remote debugging can be enabled by specifying the "remote-
@@ -1872,6 +1991,20 @@ type
 
     // Download the file at |url| using cef_download_handler_t.
     start_download: procedure(self: PCefBrowserHost; const url: PCefString); stdcall;
+
+    // Print the current browser contents.
+    print: procedure(self: PCefBrowserHost); stdcall;
+
+    // Search for |searchText|. |identifier| can be used to have multiple searches
+    // running simultaniously. |forward| indicates whether to search forward or
+    // backward within the page. |matchCase| indicates whether the search should
+    // be case-sensitive. |findNext| indicates whether this is the first request
+    // or a follow-up.
+    find: procedure(self: PCefBrowserHost; identifier: Integer;
+      const searchText: PCefString; forward, matchCase, findNext: Integer); stdcall;
+
+    // Cancel all searches that are currently going on.
+    stop_finding: procedure(self: PCefBrowserHost; clearSelection: Integer); stdcall;
 
     // Set whether mouse cursor change is disabled.
     set_mouse_cursor_change_disabled: procedure(self: PCefBrowserHost; disabled: Integer); stdcall;
@@ -2225,6 +2358,9 @@ type
     on_browser_destroyed: procedure(self: PCefRenderProcessHandler;
       browser: PCefBrowser); stdcall;
 
+    // Return the handler for browser load status events.
+    get_load_handler: function(self: PCefRenderProcessHandler): PCefLoadHandler; stdcall;
+
     // Called before browser navigation. Return true (1) to cancel the navigation
     // or false (0) to allow the navigation to proceed. The |request| object
     // cannot be modified in this callback.
@@ -2412,19 +2548,27 @@ type
   end;
 
 
-  // Implement this structure to handle events related to browser load status. The
+  // functions of this structure will be called on the browser process UI thread
+  // or render process main thread (TID_RENDERER).
 
-  // functions of this structure will be called on the UI thread.
   TCefLoadHandler = record
     // Base structure.
     base: TCefBase;
+
+    // Called when the loading state has changed. This callback will be executed
+    // twice -- once when loading is initiated either programmatically or by user
+    // action, and once when loading is terminated due to completion, cancellation
+    // of failure.
+    on_loading_state_change: procedure(self: PCefLoadHandler;
+        browser: PCefBrowser; isLoading, canGoBack, canGoForward: Integer); stdcall;
 
     // Called when the browser begins loading a frame. The |frame| value will
     // never be NULL -- call the is_main() function to check if this frame is the
     // main frame. Multiple frames may be loading at the same time. Sub-frames may
     // start or continue loading after the main frame load has ended. This
     // function may not be called for a particular frame if the load request for
-    // that frame fails.
+    // that frame fails. For notification of overall browser load status use
+    // OnLoadingStateChange instead.
     on_load_start: procedure(self: PCefLoadHandler;
       browser: PCefBrowser; frame: PCefFrame); stdcall;
 
@@ -2437,22 +2581,12 @@ type
     on_load_end: procedure(self: PCefLoadHandler; browser: PCefBrowser;
       frame: PCefFrame; httpStatusCode: Integer); stdcall;
 
-    // Called when the browser fails to load a resource. |errorCode| is the error
-    // code number, |errorText| is the error text and and |failedUrl| is the URL
-    // that failed to load. See net\base\net_error_list.h for complete
-    // descriptions of the error codes.
+    // Called when the resource load for a navigation fails or is canceled.
+    // |errorCode| is the error code number, |errorText| is the error text and
+    // |failedUrl| is the URL that failed to load. See net\base\net_error_list.h
+    // for complete descriptions of the error codes.
     on_load_error: procedure(self: PCefLoadHandler; browser: PCefBrowser;
       frame: PCefFrame; errorCode: Integer; const errorText, failedUrl: PCefString); stdcall;
-
-    // Called when the render process terminates unexpectedly. |status| indicates
-    // how the process terminated.
-    on_render_process_terminated: procedure(self: PCefLoadHandler; browser: PCefBrowser;
-      status: TCefTerminationStatus); stdcall;
-
-    // Called when a plugin has crashed. |plugin_path| is the path of the plugin
-    // that crashed.
-    on_plugin_crashed: procedure(self: PCefLoadHandler; browser: PCefBrowser;
-      const plugin_path: PCefString); stdcall;
   end;
 
   // Generic callback structure used for asynchronous continuation.
@@ -2568,6 +2702,17 @@ type
     // Base structure.
     base: TCefBase;
 
+    // Called on the UI thread before browser navigation. Return true (1) to
+    // cancel the navigation or false (0) to allow the navigation to proceed. The
+    // |request| object cannot be modified in this callback.
+    // cef_load_handler_t::OnLoadingStateChange will be called twice in all cases.
+    // If the navigation is allowed cef_load_handler_t::OnLoadStart and
+    // cef_load_handler_t::OnLoadEnd will be called. If the navigation is canceled
+    // cef_load_handler_t::OnLoadError will be called with an |errorCode| value of
+    // ERR_ABORTED.
+    on_before_browse: function(self: PCefRequestHandler; browser: PCefBrowser;
+      frame: PCefFrame; request: PCefRequest; is_redirect: Integer): Integer; stdcall;
+
     // Called on the IO thread before a resource request is loaded. The |request|
     // object may be modified. To cancel the request return true (1) otherwise
     // return false (0).
@@ -2606,13 +2751,6 @@ type
     on_quota_request: function(self: PCefRequestHandler; browser: PCefBrowser;
       const origin_url: PCefString; new_size: Int64; callback: PCefQuotaCallback): Integer; stdcall;
 
-    // Called on the IO thread to retrieve the cookie manager. |main_url| is the
-    // URL of the top-level frame. Cookies managers can be unique per browser or
-    // shared across multiple browsers. The global cookie manager will be used if
-    // this function returns NULL.
-    get_cookie_manager: function(self: PCefRequestHandler;
-      browser: PCefBrowser; const main_url: PCefString): PCefCookieManager; stdcall;
-
     // Called on the UI thread to handle requests for URLs with an unknown
     // protocol component. Set |allow_os_execution| to true (1) to attempt
     // execution via the registered OS protocol handler, if any. SECURITY WARNING:
@@ -2620,11 +2758,6 @@ type
     // OTHER URL ANALYSIS BEFORE ALLOWING OS EXECUTION.
     on_protocol_execution: procedure(self: PCefRequestHandler;
       browser: PCefBrowser; const url: PCefString; allow_os_execution: PInteger); stdcall;
-
-    // Called on the browser process IO thread before a plugin is loaded. Return
-    // true (1) to block loading of the plugin.
-    on_before_plugin_load: function(self: PCefRequestHandler; browser: PCefBrowser;
-      const url, policy_url: PCefString; info: PCefWebPluginInfo): Integer; stdcall;
 
     // Called on the UI thread to handle requests for URLs with an invalid SSL
     // certificate. Return true (1) and call
@@ -2637,6 +2770,21 @@ type
     on_certificate_error: function(self: PCefRequestHandler;
       cert_error: TCefErrorCode; const request_url: PCefString;
       callback: PCefAllowCertificateErrorCallback): Integer; stdcall;
+
+    // Called on the browser process IO thread before a plugin is loaded. Return
+    // true (1) to block loading of the plugin.
+    on_before_plugin_load: function(self: PCefRequestHandler; browser: PCefBrowser;
+      const url, policy_url: PCefString; info: PCefWebPluginInfo): Integer; stdcall;
+
+    // Called on the browser process UI thread when a plugin has crashed.
+    // |plugin_path| is the path of the plugin that crashed.
+    on_plugin_crashed: procedure(self: PCefRequestHandler; browser: PCefBrowser;
+      const plugin_path: PCefString); stdcall;
+
+    // Called on the browser process UI thread when the render process terminates
+    // unexpectedly. |status| indicates how the process terminated.
+    on_render_process_terminated: procedure(self: PCefRequestHandler;
+      browser: PCefBrowser; status: TCefTerminationStatus); stdcall
   end;
 
   // Implement this structure to handle events related to browser display state.
@@ -2645,10 +2793,6 @@ type
   TCefDisplayHandler = record
     // Base structure.
     base: TCefBase;
-
-    // Called when the loading state has changed.
-    on_loading_state_change: procedure(self: PCefDisplayHandler;
-      browser: PCefBrowser; isLoading, canGoBack, canGoForward: Integer); stdcall;
 
     // Called when a frame's address has changed.
     on_address_change: procedure(self: PCefDisplayHandler;
@@ -3046,8 +3190,9 @@ type
     // The resulting string must be freed by calling cef_string_userfree_free().
     get_source_url: function(self: PCefContextMenuParams): PCefStringUserFree; stdcall;
 
-    // Returns true (1) if the context menu was invoked on a blocked image.
-    is_image_blocked: function(self: PCefContextMenuParams): Integer; stdcall;
+    // Returns true (1) if the context menu was invoked on an image which has non-
+    // NULL contents.
+    has_image_contents: function(self: PCefContextMenuParams): Integer; stdcall;
 
     // Returns the URL of the top level page that the context menu was invoked on.
     // The resulting string must be freed by calling cef_string_userfree_free().
@@ -3225,6 +3370,15 @@ type
     // Set the URL to the first party for cookies used in combination with
     // cef_urlrequest_t.
     set_first_party_for_cookies: procedure(self: PCefRequest; const url: PCefString); stdcall;
+
+    // Get the resource type for this request. Accurate resource type information
+    // may only be available in the browser process.
+    get_resource_type: function(self: PCefRequest): TCefResourceType; stdcall;
+
+    // Get the transition type for this request. Only available in the browser
+    // process and only applies to requests that represent a main frame or sub-
+    // frame navigation.
+    get_transition_type: function(self: PCefRequest): TCefTransitionType; stdcall;
   end;
 
 
@@ -3940,7 +4094,7 @@ type
     get_full_path: function(self: PCefDownloadItem): PCefStringUserFree; stdcall;
 
     // Returns the unique identifier for this download.
-    get_id: function(self: PCefDownloadItem): Integer; stdcall;
+    get_id: function(self: PCefDownloadItem): Cardinal; stdcall;
 
     // Returns the URL.
     // The resulting string must be freed by calling cef_string_userfree_free().
@@ -4578,7 +4732,7 @@ type
 
   // Structure that should be implemented by the cef_urlrequest_t client. The
   // functions of this structure will be called on the same thread that created
-  // the request.
+  // the request unless otherwise documented.
   TCefUrlrequestClient = record
     // Base structure.
     base: TCefBase;
@@ -4606,6 +4760,17 @@ type
     // UR_FLAG_NO_DOWNLOAD_DATA flag is set on the request.
     on_download_data: procedure(self: PCefUrlRequestClient;
       request: PCefUrlRequest; const data: Pointer; data_length: NativeUInt); stdcall;
+
+    // Called on the IO thread when the browser needs credentials from the user.
+    // |isProxy| indicates whether the host is a proxy server. |host| contains the
+    // hostname and |port| contains the port number. Return true (1) to continue
+    // the request and call cef_auth_callback_t::cont() when the authentication
+    // information is available. Return false (0) to cancel the request. This
+    // function will only be called for requests initiated from the browser
+    // process.
+    get_auth_credentials: function(self: PCefUrlRequestClient; isProxy: Integer;
+      const host: PCefString; port: Integer; const realm, scheme: PCefString;
+      callback: PCefAuthCallback): Integer; stdcall;
   end;
 
   // Callback structure for asynchronous continuation of file dialog requests.
@@ -4795,6 +4960,45 @@ type
       dragData: PCefDragData; mask: TCefDragOperations): Integer; stdcall
   end;
 
+  // Implement this structure to provide handler implementations.
+  TCefRequestContextHandler = record
+    // Base structure.
+    base: TCefBase;
+
+    // Called on the IO thread to retrieve the cookie manager. The global cookie
+    // manager will be used if this function returns NULL.
+    get_cookie_manager: function(self: PCefRequestContextHandler): PCefCookieManager; stdcall;
+  end;
+
+  // A request context provides request handling for a set of related browser
+  // objects. A request context is specified when creating a new browser object
+  // via the cef_browser_host_t static factory functions. Browser objects with
+  // different request contexts will never be hosted in the same render process.
+  // Browser objects with the same request context may or may not be hosted in the
+  // same render process depending on the process model. Browser objects created
+  // indirectly via the JavaScript window.open function or targeted links will
+  // share the same render process and the same request context as the source
+  // browser. When running in single-process mode there is only a single render
+  // process (the main process) and so all browsers created in single-process mode
+  // will share the same request context. This will be the first request context
+  // passed into a cef_browser_host_t static factory function and all other
+  // request context objects will be ignored.
+
+  TCefRequestContext = record
+    // Base structure.
+    base: TCefBase;
+
+    // Returns true (1) if this object is pointing to the same context as |that|
+    // object.
+    is_same: function(self, other: PCefRequestContext): Integer; stdcall;
+
+    // Returns true (1) if this object is the global context.
+    is_global: function(self: PCefRequestContext): Integer; stdcall;
+
+    // Returns the handler for this context if any.
+    get_handler: function(self: PCefRequestContext): PCefRequestHandler; stdcall;
+  end;
+
 //******************************************************************************
 //
 //  I N T E R F A C E S
@@ -4816,6 +5020,8 @@ type
   ICefTask = interface;
   ICefTaskRunner = interface;
   ICefFileDialogCallback = interface;
+  ICefRequestContext = interface;
+  ICefLoadHandler = interface;
 
   ICefBase = interface
     ['{1F9A7B44-DCDC-4477-9180-3ADD44BDEB7B}']
@@ -4838,6 +5044,7 @@ type
     procedure SetFocus(enable: Boolean);
     function GetWindowHandle: TCefWindowHandle;
     function GetOpenerWindowHandle: TCefWindowHandle;
+    function GetRequestContext: ICefRequestContext;
     function GetDevToolsUrl(httpScheme: Boolean): ustring;
     function GetZoomLevel: Double;
     procedure SetZoomLevel(zoomLevel: Double);
@@ -4846,6 +5053,9 @@ type
     procedure RunFileDialogProc(mode: TCefFileDialogMode; const title, defaultFileName: ustring;
       acceptTypes: TStrings; const callback: TCefRunFileDialogCallbackProc);
     procedure StartDownload(const url: ustring);
+    procedure Print;
+    procedure Find(identifier: Integer; const searchText: ustring; forward, matchCase, findNext: Boolean);
+    procedure StopFinding(clearSelection: Boolean);
     procedure SetMouseCursorChangeDisabled(disabled: Boolean);
     function IsMouseCursorChangeDisabled: Boolean;
     function IsWindowRenderingDisabled: Boolean;
@@ -4985,11 +5195,15 @@ type
     procedure SetFirstPartyForCookies(const url: ustring);
     procedure Assign(const url, method: ustring;
       const postData: ICefPostData; const headerMap: ICefStringMultimap);
+    function GetResourceType: TCefResourceType;
+    function GetTransitionType: TCefTransitionType;
     property Url: ustring read GetUrl write SetUrl;
     property Method: ustring read GetMethod write SetMethod;
     property PostData: ICefPostData read GetPostData write SetPostData;
     property Flags: TCefUrlRequestFlags read GetFlags write SetFlags;
     property FirstPartyForCookies: ustring read GetFirstPartyForCookies write SetFirstPartyForCookies;
+    property ResourceType: TCefResourceType read GetResourceType;
+    property TransitionType: TCefTransitionType read GetTransitionType;
   end;
 
   TCefDomVisitorProc = {$IFDEF DELPHI12_UP}reference to{$ENDIF} procedure(const document: ICefDomDocument);
@@ -5485,6 +5699,7 @@ type
     procedure OnWebKitInitialized;
     procedure OnBrowserCreated(const browser: ICefBrowser);
     procedure OnBrowserDestroyed(const browser: ICefBrowser);
+    function GetLoadHandler: ICefLoadHandler;
     procedure OnContextCreated(const browser: ICefBrowser;
       const frame: ICefFrame; const context: ICefv8Context);
     procedure OnContextReleased(const browser: ICefBrowser;
@@ -5527,17 +5742,21 @@ type
     ['{CC1749E6-9AD3-4283-8430-AF6CBF3E8785}']
     procedure SetSupportedSchemes(schemes: TStrings);
     function VisitAllCookies(const visitor: ICefCookieVisitor): Boolean;
-    function VisitAllCookiesProc(const visitor: TCefCookieVisitorProc): Boolean;
     function VisitUrlCookies(const url: ustring;
       includeHttpOnly: Boolean; const visitor: ICefCookieVisitor): Boolean;
-    function VisitUrlCookiesProc(const url: ustring;
-      includeHttpOnly: Boolean; const visitor: TCefCookieVisitorProc): Boolean;
     function SetCookie(const url: ustring; const name, value, domain, path: ustring; secure, httponly,
       hasExpires: Boolean; const creation, lastAccess, expires: TDateTime): Boolean;
     function DeleteCookies(const url, cookieName: ustring): Boolean;
     function SetStoragePath(const path: ustring; persistSessionCookies: Boolean): Boolean;
     function FlushStore(const handler: ICefCompletionHandler): Boolean;
     function FlushStoreProc(const proc: TCefCompletionHandlerProc): Boolean;
+  end;
+
+  ICefCookieManager2 = interface(ICefCookieManager)
+  ['{D8DCAFA7-F515-432E-BDE5-6329CB4451B7}']
+    function VisitAllCookiesProc(const visitor: TCefCookieVisitorProc): Boolean;
+    function VisitUrlCookiesProc(const url: ustring;
+      includeHttpOnly: Boolean; const visitor: TCefCookieVisitorProc): Boolean;
   end;
 
   ICefWebPluginInfo = interface(ICefBase)
@@ -5596,7 +5815,7 @@ type
     function GetLinkUrl: ustring;
     function GetUnfilteredLinkUrl: ustring;
     function GetSourceUrl: ustring;
-    function IsImageBlocked: Boolean;
+    function HasImageContents: Boolean;
     function GetPageUrl: ustring;
     function GetFrameUrl: ustring;
     function GetFrameCharset: ustring;
@@ -5754,12 +5973,12 @@ type
 
   ICefLoadHandler = interface(ICefBase)
   ['{2C63FB82-345D-4A5B-9858-5AE7A85C9F49}']
+    procedure OnLoadingStateChange(const browser: ICefBrowser; isLoading,
+      canGoBack, canGoForward: Boolean);
     procedure OnLoadStart(const browser: ICefBrowser; const frame: ICefFrame);
     procedure OnLoadEnd(const browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer);
     procedure OnLoadError(const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
       const errorText, failedUrl: ustring);
-    procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus);
-    procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring);
   end;
 
   ICefQuotaCallback = interface(ICefBase)
@@ -5775,6 +5994,8 @@ type
 
   ICefRequestHandler = interface(ICefBase)
   ['{050877A9-D1F8-4EB3-B58E-50DC3E3D39FD}']
+    function OnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; isRedirect: Boolean): Boolean;
     function OnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest): Boolean;
     function GetResourceHandler(const browser: ICefBrowser; const frame: ICefFrame;
@@ -5786,7 +6007,6 @@ type
       const callback: ICefAuthCallback): Boolean;
     function OnQuotaRequest(const browser: ICefBrowser;
       const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback): Boolean;
-    function GetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager;
     procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean);
     function OnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo): Boolean;
@@ -5796,7 +6016,6 @@ type
 
   ICefDisplayHandler = interface(ICefBase)
   ['{1EC7C76D-6969-41D1-B26D-079BCFF054C4}']
-    procedure OnLoadingStateChange(const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
     procedure OnAddressChange(const browser: ICefBrowser; const frame: ICefFrame; const url: ustring);
     procedure OnTitleChange(const browser: ICefBrowser; const title: ustring);
     function OnTooltip(const browser: ICefBrowser; var text: ustring): Boolean;
@@ -5909,6 +6128,8 @@ type
     procedure OnUploadProgress(const request: ICefUrlRequest; current, total: UInt64);
     procedure OnDownloadProgress(const request: ICefUrlRequest; current, total: UInt64);
     procedure OnDownloadData(const request: ICefUrlRequest; data: Pointer; dataLength: NativeUInt);
+    function GetAuthCredentials(isProxy: Boolean; const host: ustring; port: Integer;
+      const realm, scheme: ustring; const callback: ICefAuthCallback): Boolean;
   end;
 
   ICefWebPluginInfoVisitor = interface(ICefBase)
@@ -5960,6 +6181,18 @@ type
       mask: TCefDragOperations): Boolean;
   end;
 
+  ICefRequestContextHandler = interface(ICefBase)
+    ['{1C27B796-CA2E-4FA8-BA25-C5F68FFD3A41}']
+    function GetCookieManager: ICefCookieManager;
+  end;
+
+  ICefRequestContext = interface(ICefBase)
+    ['{A9305CE5-BD71-4A46-9345-EF2CC2B57AE3}']
+    function IsSame(const other: ICefRequestContext): Boolean;
+    function IsGlobal: Boolean;
+    function GetHandler: ICefBase;
+  end;
+
 /////////////////////////////////////////
 
   TCefBaseOwn = class(TInterfacedObject, ICefBase)
@@ -6005,6 +6238,7 @@ type
     procedure SetFocus(enable: Boolean);
     function GetWindowHandle: TCefWindowHandle;
     function GetOpenerWindowHandle: TCefWindowHandle;
+    function GetRequestContext: ICefRequestContext;
     function GetDevToolsUrl(httpScheme: Boolean): ustring;
     function GetZoomLevel: Double;
     procedure SetZoomLevel(zoomLevel: Double);
@@ -6012,6 +6246,9 @@ type
       acceptTypes: TStrings; const callback: ICefRunFileDialogCallback);
     procedure RunFileDialogProc(mode: TCefFileDialogMode; const title, defaultFileName: ustring;
       acceptTypes: TStrings; const callback: TCefRunFileDialogCallbackProc);
+    procedure Print;
+    procedure Find(identifier: Integer; const searchText: ustring; forward, matchCase, findNext: Boolean);
+    procedure StopFinding(clearSelection: Boolean);
     procedure StartDownload(const url: ustring);
     procedure SetMouseCursorChangeDisabled(disabled: Boolean);
     function IsMouseCursorChangeDisabled: Boolean;
@@ -6138,6 +6375,8 @@ type
     procedure SetFlags(flags: TCefUrlRequestFlags);
     function GetFirstPartyForCookies: ustring;
     procedure SetFirstPartyForCookies(const url: ustring);
+    function GetResourceType: TCefResourceType;
+    function GetTransitionType: TCefTransitionType;
     procedure Assign(const url, method: ustring;
       const postData: ICefPostData; const headerMap: ICefStringMultimap);
   public
@@ -6331,12 +6570,12 @@ type
 
   TCefLoadHandlerOwn = class(TCefBaseOwn, ICefLoadHandler)
   protected
+    procedure OnLoadingStateChange(const browser: ICefBrowser; isLoading,
+      canGoBack, canGoForward: Boolean); virtual;
     procedure OnLoadStart(const browser: ICefBrowser; const frame: ICefFrame); virtual;
     procedure OnLoadEnd(const browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer); virtual;
     procedure OnLoadError(const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
       const errorText, failedUrl: ustring); virtual;
-    procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); virtual;
-    procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
   public
     constructor Create; virtual;
   end;
@@ -6358,6 +6597,8 @@ type
 
   TCefRequestHandlerOwn = class(TCefBaseOwn, ICefRequestHandler)
   protected
+    function OnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; isRedirect: Boolean): Boolean; virtual;
     function OnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest): Boolean; virtual;
     function GetResourceHandler(const browser: ICefBrowser; const frame: ICefFrame;
@@ -6369,19 +6610,19 @@ type
       const callback: ICefAuthCallback): Boolean; virtual;
     function OnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
       newSize: Int64; const callback: ICefQuotaCallback): Boolean; virtual;
-    function GetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager; virtual;
     procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean); virtual;
     function OnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo): Boolean; virtual;
     function OnCertificateError(certError: TCefErrorCode; const requestUrl: ustring;
       const callback: ICefAllowCertificateErrorCallback): Boolean; virtual;
+    procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
+    procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); virtual;
   public
     constructor Create; virtual;
   end;
 
   TCefDisplayHandlerOwn = class(TCefBaseOwn, ICefDisplayHandler)
   protected
-    procedure OnLoadingStateChange(const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean); virtual;
     procedure OnAddressChange(const browser: ICefBrowser; const frame: ICefFrame; const url: ustring); virtual;
     procedure OnTitleChange(const browser: ICefBrowser; const title: ustring); virtual;
     function OnTooltip(const browser: ICefBrowser; var text: ustring): Boolean; virtual;
@@ -6504,6 +6745,13 @@ type
     procedure OnComplete; virtual;
   public
     constructor Create; virtual;
+  end;
+
+  TCefCompletionHandlerRef = class(TCefBaseRef, ICefCompletionHandler)
+  protected
+    procedure OnComplete;
+  public
+    class function UnWrap(data: Pointer): ICefCompletionHandler;
   end;
 
   TCefFastCompletionHandler = class(TCefCompletionHandlerOwn)
@@ -6930,7 +7178,7 @@ type
     constructor Create; virtual;
   end;
 
-  TCefCookieManagerRef = class(TCefBaseRef, ICefCookieManager)
+  TCefCookieManagerRef = class(TCefBaseRef, ICefCookieManager2)
   protected
     procedure SetSupportedSchemes(schemes: TStrings);
     function VisitAllCookies(const visitor: ICefCookieVisitor): Boolean;
@@ -6946,9 +7194,25 @@ type
     function FlushStore(const handler: ICefCompletionHandler): Boolean;
     function FlushStoreProc(const proc: TCefCompletionHandlerProc): Boolean;
   public
-    class function UnWrap(data: Pointer): ICefCookieManager;
-    class function Global: ICefCookieManager;
-    class function New(const path: ustring; persistSessionCookies: Boolean): ICefCookieManager;
+    class function UnWrap(data: Pointer): ICefCookieManager2;
+    class function Global: ICefCookieManager2;
+    class function New(const path: ustring; persistSessionCookies: Boolean): ICefCookieManager2;
+  end;
+
+  TCefCookieManagerOwn = class(TCefBaseOwn, ICefCookieManager)
+  protected
+    procedure SetSupportedSchemes(schemes: TStrings); virtual;
+    function VisitAllCookies(const visitor: ICefCookieVisitor): Boolean; virtual;
+    function VisitUrlCookies(const url: ustring;
+      includeHttpOnly: Boolean; const visitor: ICefCookieVisitor): Boolean; virtual;
+    function SetCookie(const url: ustring; const name, value, domain, path: ustring; secure, httponly,
+      hasExpires: Boolean; const creation, lastAccess, expires: TDateTime): Boolean; virtual;
+    function DeleteCookies(const url, cookieName: ustring): Boolean; virtual;
+    function SetStoragePath(const path: ustring; persistSessionCookies: Boolean): Boolean; virtual;
+    function FlushStore(const handler: ICefCompletionHandler): Boolean; virtual;
+    function FlushStoreProc(const proc: TCefCompletionHandlerProc): Boolean; virtual;
+  public
+    constructor Create; virtual;
   end;
 
   TCefWebPluginInfoRef = class(TCefBaseRef, ICefWebPluginInfo)
@@ -7091,7 +7355,7 @@ type
     function GetLinkUrl: ustring;
     function GetUnfilteredLinkUrl: ustring;
     function GetSourceUrl: ustring;
-    function IsImageBlocked: Boolean;
+    function HasImageContents: Boolean;
     function GetPageUrl: ustring;
     function GetFrameUrl: ustring;
     function GetFrameCharset: ustring;
@@ -7249,6 +7513,7 @@ type
     procedure OnRenderThreadCreated(const extraInfo: ICefListValue); virtual;
     procedure OnWebKitInitialized; virtual;
     procedure OnBrowserCreated(const browser: ICefBrowser); virtual;
+    function GetLoadHandler: ICefLoadHandler; virtual;
     procedure OnBrowserDestroyed(const browser: ICefBrowser); virtual;
     function OnBeforeNavigation(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; navigationType: TCefNavigationType;
@@ -7274,6 +7539,8 @@ type
     procedure OnUploadProgress(const request: ICefUrlRequest; current, total: UInt64); virtual;
     procedure OnDownloadProgress(const request: ICefUrlRequest; current, total: UInt64); virtual;
     procedure OnDownloadData(const request: ICefUrlRequest; data: Pointer; dataLength: NativeUInt); virtual;
+    function GetAuthCredentials(isProxy: Boolean; const host: ustring; port: Integer;
+      const realm, scheme: ustring; const callback: ICefAuthCallback): Boolean; virtual;
   public
     constructor Create; virtual;
   end;
@@ -7403,6 +7670,39 @@ type
     constructor Create; virtual;
   end;
 
+  TCefRequestContextHandlerOwn = class(TCefBaseOwn, ICefRequestContextHandler)
+  protected
+    function GetCookieManager: ICefCookieManager; virtual;
+  public
+    constructor Create; virtual;
+  end;
+
+  TCefRequestContextHandlerRef = class(TCefBaseRef, ICefRequestContextHandler)
+  protected
+    function GetCookieManager: ICefCookieManager;
+  public
+    class function UnWrap(data: Pointer): ICefRequestContextHandler;
+  end;
+
+  TCefCookieVisitorRef = class(TCefBaseRef, ICefCookieVisitor)
+  protected
+    function visit(const name, value, domain, path: ustring; secure, httponly,
+      hasExpires: Boolean; const creation, lastAccess, expires: TDateTime;
+      count, total: Integer; out deleteCookie: Boolean): Boolean;
+  public
+    class function UnWrap(data: Pointer): ICefCookieVisitor;
+  end;
+
+  TCefRequestContextRef = class(TCefBaseRef, ICefRequestContext)
+  protected
+    function IsSame(const other: ICefRequestContext): Boolean;
+    function IsGlobal: Boolean;
+    function GetHandler: ICefBase;
+  public
+    class function UnWrap(data: Pointer): ICefRequestContext;
+    class function GetGlobalContext: ICefRequestContext;
+    class function CreateContext(const handler: ICefRequestContextHandler): ICefRequestContext;
+  end;
 
   ECefException = class(Exception)
   end;
@@ -7440,9 +7740,11 @@ procedure CefStringFree(const str: PCefString);
 function CefStringFreeAndGet(const str: PCefStringUserFree): ustring;
 procedure CefStringSet(const str: PCefString; const value: ustring);
 function CefBrowserHostCreate(windowInfo: PCefWindowInfo; const client: ICefClient;
-  const url: ustring; const settings: PCefBrowserSettings): Boolean;
+  const url: ustring; const settings: PCefBrowserSettings;
+  const requestContext: ICefRequestContext = nil): Boolean;
 function CefBrowserHostCreateSync(windowInfo: PCefWindowInfo; const client: ICefClient;
-  const url: ustring; const settings: PCefBrowserSettings): ICefBrowser;
+  const url: ustring; const settings: PCefBrowserSettings;
+  const requestContext: ICefRequestContext = nil): ICefBrowser;
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
 procedure CefDoMessageLoopWork;
 procedure CefRunMessageLoop;
@@ -7525,6 +7827,32 @@ var
   CefOnRegisterCustomSchemes: TOnRegisterCustomSchemes = nil;
 
 implementation
+
+function CefColorGetA(color: TCefColor): Byte;
+begin
+  Result :=   (((color) shr 24) and $FF)
+end;
+
+function CefColorGetR(color: TCefColor): Byte;
+begin
+  Result := (((color) shr 16) and $FF);
+end;
+
+function CefColorGetG(color: TCefColor): Byte;
+begin
+  Result := (((color) shr  8) and $FF);
+end;
+
+function CefColorGetB(color: TCefColor): Byte;
+begin
+  Result := (((color) shr  0) and $FF);
+end;
+
+function CefColorSetARGB(a, r, g, b: Byte): TCefColor;
+begin
+  Result := (a shl 24) or (r shl 16) or (g shl 8) or  (b shl 0);
+end;
+
 
 type
   TInternalApp = class(TCefAppOwn)
@@ -7667,18 +7995,21 @@ end;
 var
   // Create a new browser window using the window parameters specified by
   // |windowInfo|. All values will be copied internally and the actual window will
-  // be created on the UI thread. This function can be called on any browser
-  // process thread and will not block.
+  // be created on the UI thread. If |request_context| is NULL the global request
+  // context will be used. This function can be called on any browser process
+  // thread and will not block.
   cef_browser_host_create_browser: function(
       const windowInfo: PCefWindowInfo; client: PCefClient;
-      const url: PCefString; const settings: PCefBrowserSettings): Integer; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+      const url: PCefString; const settings: PCefBrowserSettings;
+      request_context: Pcefrequestcontext): Integer; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Create a new browser window using the window parameters specified by
-  // |windowInfo|. This function can only be called on the browser process UI
-  // thread.
+  // |windowInfo|. If |request_context| is NULL the global request context will be
+  // used. This function can only be called on the browser process UI thread.
   cef_browser_host_create_browser_sync: function(
       const windowInfo: PCefWindowInfo; client: PCefClient;
-      const url: PCefString; const settings: PCefBrowserSettings): PCefBrowser; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+      const url: PCefString; const settings: PCefBrowserSettings;
+      request_context: Pcefrequestcontext): PCefBrowser; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Perform a single iteration of CEF message loop processing. This function is
   // used to integrate the CEF message loop into an existing application message
@@ -8069,7 +8400,14 @@ var
   cef_response_create: function: PCefResponse; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Create a new URL request. Only GET, POST, HEAD, DELETE and PUT request
-  // functions are supported. The |request| object will be marked as read-only
+  // functions are supported. Multiple post data elements are not supported and
+  // elements of type PDE_TYPE_FILE are only supported for requests originating
+  // from the browser process. Requests originating from the render process will
+  // receive the same handling as requests originating from Web content -- if the
+  // response contains Content-Disposition or Mime-Type header values that would
+  // not normally be rendered then the response may receive special handling
+  // inside the browser (for example, via the file download code path instead of
+  // the URL request code path). The |request| object will be marked as read-only
   // after calling this function.
   cef_urlrequest_create: function(request: PCefRequest; client: PCefUrlRequestClient): PCefUrlRequest; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
@@ -8174,8 +8512,14 @@ var
   // Returns the current system trace time or, if none is defined, the current
   // high-res time. Can be used by clients to synchronize with the time
   // information in trace events.
-  cef_now_from_system_trace_time: function: int64; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  cef_now_from_system_trace_time: function: Int64; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
+
+  // Returns the global context object.
+  cef_request_context_get_global_context: function(): PCefRequestContext; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  // Creates a new context object with the specified handler.
+  cef_request_context_create_context: function(handler: PCefRequestContextHandler): PCefRequestContext; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
 var
   LibHandle: THandle = 0;
@@ -8391,6 +8735,8 @@ begin
     cef_get_trace_buffer_percent_full_async := GetProcAddress(LibHandle, 'cef_get_trace_buffer_percent_full_async');
     cef_end_tracing_async := GetProcAddress(LibHandle, 'cef_end_tracing_async');
     cef_now_from_system_trace_time := GetProcAddress(LibHandle, 'cef_now_from_system_trace_time');
+    cef_request_context_get_global_context := GetProcAddress(LibHandle, 'cef_request_context_get_global_context');
+    cef_request_context_create_context := GetProcAddress(LibHandle, 'cef_request_context_create_context');
 
     if not (
       Assigned(cef_string_wide_set) and
@@ -8513,7 +8859,9 @@ begin
       Assigned(cef_begin_tracing) and
       Assigned(cef_get_trace_buffer_percent_full_async) and
       Assigned(cef_end_tracing_async) and
-      Assigned(cef_now_from_system_trace_time)
+      Assigned(cef_now_from_system_trace_time) and
+      Assigned(cef_request_context_get_global_context) and
+      Assigned(cef_request_context_create_context)
     ) then raise ECefException.Create('Invalid CEF Library version');
 
     FillChar(settings, SizeOf(settings), 0);
@@ -8787,23 +9135,27 @@ begin
 end;
 
 function CefBrowserHostCreate(windowInfo: PCefWindowInfo; const client: ICefClient;
-  const url: ustring; const settings: PCefBrowserSettings): Boolean;
+  const url: ustring; const settings: PCefBrowserSettings;
+  const requestContext: ICefRequestContext): Boolean;
 var
   u: TCefString;
 begin
   CefLoadLibDefault;
   u := CefString(url);
-  Result := cef_browser_host_create_browser(windowInfo, CefGetData(client), @u, settings) <> 0;
+  Result := cef_browser_host_create_browser(windowInfo, CefGetData(client), @u,
+    settings, CefGetData(requestContext)) <> 0;
 end;
 
 function CefBrowserHostCreateSync(windowInfo: PCefWindowInfo; const client: ICefClient;
-  const url: ustring; const settings: PCefBrowserSettings): ICefBrowser;
+  const url: ustring; const settings: PCefBrowserSettings;
+  const requestContext: ICefRequestContext): ICefBrowser;
 var
   u: TCefString;
 begin
   CefLoadLibDefault;
   u := CefString(url);
-  Result := TCefBrowserRef.UnWrap(cef_browser_host_create_browser_sync(windowInfo, CefGetData(client), @u, settings));
+  Result := TCefBrowserRef.UnWrap(cef_browser_host_create_browser_sync(windowInfo,
+    CefGetData(client), @u, settings, CefGetData(requestContext)));
 end;
 
 procedure CefVisitWebPluginInfo(const visitor: ICefWebPluginInfoVisitor);
@@ -9193,6 +9545,14 @@ end;
 
 { cef_load_handler }
 
+procedure cef_load_handler_on_loading_state_change(self: PCefLoadHandler;
+        browser: PCefBrowser; isLoading, canGoBack, canGoForward: Integer); stdcall;
+begin
+  with TCefLoadHandlerOwn(CefGetObject(self)) do
+    OnLoadingStateChange(TCefBrowserRef.UnWrap(browser),
+      isLoading <> 0, canGoBack <> 0, canGoForward <> 0);
+end;
+
 procedure cef_load_handler_on_load_start(self: PCefLoadHandler;
   browser: PCefBrowser; frame: PCefFrame); stdcall;
 begin
@@ -9215,23 +9575,21 @@ begin
       errorCode, CefString(errorText), CefString(failedUrl));
 end;
 
-procedure cef_load_handler_on_render_process_terminated(self: PCefLoadHandler;
-  browser: PCefBrowser; status: TCefTerminationStatus); stdcall;
-begin
-  with TCefLoadHandlerOwn(CefGetObject(self)) do
-    OnRenderProcessTerminated(TCefBrowserRef.UnWrap(browser), status);
-end;
-
-procedure cef_load_handler_on_plugin_crashed(self: PCefLoadHandler;
-  browser: PCefBrowser; const plugin_path: PCefString); stdcall;
-begin
-  with TCefLoadHandlerOwn(CefGetObject(self)) do
-    OnPluginCrashed(TCefBrowserRef.UnWrap(browser), CefString(plugin_path));
-end;
-
 { cef_request_handler }
 
-function cef_request_handler_on_before_resource_load(self: PCefRequestHandler;
+function cef_request_handler_on_before_browse(self: PCefRequestHandler;
+  browser: PCefBrowser; frame: PCefFrame; request: PCefRequest;
+  is_redirect: Integer): Integer; stdcall;
+begin
+  with TCefRequestHandlerOwn(CefGetObject(self)) do
+    Result := Ord(OnBeforeBrowse(
+      TCefBrowserRef.UnWrap(browser),
+      TCefFrameRef.UnWrap(frame),
+      TCefRequestRef.UnWrap(request),
+      is_redirect <> 0));
+end;
+
+function cef_request_handler_on_before_resource_load(self: PCefRequestHandler;
    browser: PCefBrowser; frame: PCefFrame; request: PCefRequest): Integer; stdcall;
 begin
   with TCefRequestHandlerOwn(CefGetObject(self)) do
@@ -9280,13 +9638,6 @@ begin
       CefString(origin_url), new_size, TCefQuotaCallbackRef.UnWrap(callback)));
 end;
 
-function cef_request_handler_get_cookie_manager(self: PCefRequestHandler;
-  browser: PCefBrowser; const main_url: PCefString): PCefCookieManager; stdcall;
-begin
-  with TCefRequestHandlerOwn(CefGetObject(self)) do
-    Result := CefGetData(GetCookieManager(TCefBrowserRef.UnWrap(browser), CefString(main_url)));
-end;
-
 procedure cef_request_handler_on_protocol_execution(self: PCefRequestHandler;
   browser: PCefBrowser; const url: PCefString; allow_os_execution: PInteger); stdcall;
 var
@@ -9317,15 +9668,21 @@ begin
       TCefAllowCertificateErrorCallbackRef.UnWrap(callback)));
 end;
 
-{ cef_display_handler }
-
-procedure cef_display_handler_on_loading_state_change(self: PCefDisplayHandler;
-  browser: PCefBrowser; isLoading, canGoBack, canGoForward: Integer); stdcall;
+procedure cef_request_handler_on_plugin_crashed(self: PCefRequestHandler;
+  browser: PCefBrowser; const plugin_path: PCefString); stdcall;
 begin
-  with TCefDisplayHandlerOwn(CefGetObject(self)) do
-    OnLoadingStateChange(TCefBrowserRef.UnWrap(browser), isLoading <> 0,
-      canGoBack <> 0, canGoForward <> 0);
+  with TCefRequestHandlerOwn(CefGetObject(self)) do
+    OnPluginCrashed(TCefBrowserRef.UnWrap(browser), CefString(plugin_path));
 end;
+
+procedure cef_request_handler_on_render_process_terminated(self: PCefRequestHandler;
+  browser: PCefBrowser; status: TCefTerminationStatus); stdcall;
+begin
+  with TCefRequestHandlerOwn(CefGetObject(self)) do
+    OnRenderProcessTerminated(TCefBrowserRef.UnWrap(browser), status);
+end;
+
+{ cef_display_handler }
 
 procedure cef_display_handler_on_address_change(self: PCefDisplayHandler;
   browser: PCefBrowser; frame: PCefFrame; const url: PCefString); stdcall;
@@ -9772,6 +10129,12 @@ begin
     OnBrowserDestroyed(TCefBrowserRef.UnWrap(browser));
 end;
 
+function cef_render_process_handler_get_load_handler(self: PCefRenderProcessHandler): PCefLoadHandler; stdcall;
+begin
+  with TCefRenderProcessHandlerOwn(CefGetObject(Self)) do
+    Result := CefGetData(GetLoadHandler());
+end;
+
 function cef_render_process_handler_on_before_navigation(self: PCefRenderProcessHandler;
   browser: PCefBrowser; frame: PCefFrame; request: PCefRequest;
   navigation_type: TCefNavigationType; is_redirect: Integer): Integer; stdcall;
@@ -9850,6 +10213,15 @@ procedure cef_url_request_client_on_download_data(self: PCefUrlRequestClient;
 begin
   with TCefUrlrequestClientOwn(CefGetObject(self)) do
     OnDownloadData(TCefUrlRequestRef.UnWrap(request), data, data_length);
+end;
+
+function cef_url_request_client_get_auth_credentials(self: PCefUrlRequestClient;
+  isProxy: Integer; const host: PCefString; port: Integer;
+  const realm, scheme: PCefString; callback: PCefAuthCallback): Integer; stdcall;
+begin
+  with TCefUrlrequestClientOwn(CefGetObject(self)) do
+    Result := Ord(GetAuthCredentials(isProxy <> 0, CefString(host), port,
+    CefString(realm), CefString(scheme), TCefAuthCallbackRef.UnWrap(callback)));
 end;
 
 { cef_scheme_handler_factory }
@@ -10094,6 +10466,76 @@ function cef_drag_handler_on_drag_enter(self: PCefDragHandler; browser: PCefBrow
 begin
   with TCefDragHandlerOwn(CefGetObject(self)) do
     Result := Ord(OnDragEnter(TCefBrowserRef.UnWrap(browser), TCefDragDataRef.UnWrap(dragData), mask));
+end;
+
+{ cef_request_context_handler }
+
+function cef_request_context_handler_get_cookie_manager(self: PCefRequestContextHandler): PCefCookieManager; stdcall;
+begin
+  with TCefRequestContextHandlerOwn(CefGetObject(self)) do
+    Result := CefGetData(GetCookieManager());
+end;
+
+{ cef_cookie_manager }
+
+procedure cef_cookie_manager_set_supported_schemes(self: PCefCookieManager; schemes: TCefStringList); stdcall;
+var
+  list: TStringList;
+  i: Integer;
+  str: TCefString;
+begin
+  list := TStringList.Create;
+  try
+    for i := 0 to cef_string_list_size(schemes) - 1 do
+    begin
+      FillChar(str, SizeOf(str), 0);
+      cef_string_list_value(schemes, i, @str);
+      list.Add(CefStringClearAndGet(str));
+    end;
+    with TCefCookieManagerOwn(CefGetObject(self)) do
+      SetSupportedSchemes(list);
+  finally
+    list.Free;
+  end;
+end;
+
+function cef_cookie_manager_visit_all_cookies(self: PCefCookieManager; visitor: PCefCookieVisitor): Integer; stdcall;
+begin
+  with TCefCookieManagerOwn(CefGetObject(self)) do
+    Result := Ord(VisitAllCookies(TCefCookieVisitorRef.UnWrap(visitor)));
+end;
+
+function cef_cookie_manager_visit_url_cookies(self: PCefCookieManager; const url: PCefString; includeHttpOnly: Integer; visitor: PCefCookieVisitor): Integer; stdcall;
+begin
+  with TCefCookieManagerOwn(CefGetObject(self)) do
+    Result := Ord(VisitUrlCookies(CefString(url), includeHttpOnly <> 0, TCefCookieVisitorRef.UnWrap(visitor)));
+end;
+
+function cef_cookie_manager_set_cookie(self: PCefCookieManager; const url: PCefString; const cookie: PCefCookie): Integer; stdcall;
+begin
+  with TCefCookieManagerOwn(CefGetObject(self)) do
+    Result := Ord(SetCookie(CefString(url), CefString(@cookie.name), CefString(@cookie.value),
+      CefString(@cookie.domain), CefString(@cookie.path), cookie.secure, cookie.httponly,
+      cookie.has_expires, CefTimeToDateTime(cookie.creation),
+      CefTimeToDateTime(cookie.last_access), CefTimeToDateTime(cookie.expires)));
+end;
+
+function cef_cookie_manager_delete_cookies(self: PCefCookieManager; const url, cookie_name: PCefString): Integer; stdcall;
+begin
+  with TCefCookieManagerOwn(CefGetObject(self)) do
+    Result := Ord(DeleteCookies(CefString(url), CefString(cookie_name)));
+end;
+
+function cef_cookie_manager_set_storage_path(self: PCefCookieManager; const path: PCefString; persist_session_cookies: Integer): Integer; stdcall;
+begin
+  with TCefCookieManagerOwn(CefGetObject(self)) do
+    Result := Ord(SetStoragePath(CefString(path), persist_session_cookies <> 0));
+end;
+
+function cef_cookie_manager_flush_store(self: PCefCookieManager; handler: PCefCompletionHandler): Integer; stdcall;
+begin
+  with TCefCookieManagerOwn(CefGetObject(self)) do
+    Result := Ord(FlushStore(TCefCompletionHandlerRef.UnWrap(handler)));
 end;
 
 { TCefBaseOwn }
@@ -10761,6 +11203,16 @@ end;
 function TCefRequestRef.GetPostData: ICefPostData;
 begin
   Result := TCefPostDataRef.UnWrap(PCefRequest(FData)^.get_post_data(PCefRequest(FData)));
+end;
+
+function TCefRequestRef.GetResourceType: TCefResourceType;
+begin
+  Result := PCefRequest(FData)^.get_resource_type(FData);
+end;
+
+function TCefRequestRef.GetTransitionType: TCefTransitionType;
+begin
+  Result := PCefRequest(FData)^.get_transition_type(FData);
 end;
 
 function TCefRequestRef.GetUrl: ustring;
@@ -13270,11 +13722,10 @@ begin
   inherited CreateData(SizeOf(TCefLoadHandler));
   with PCefLoadHandler(FData)^ do
   begin
+    on_loading_state_change := cef_load_handler_on_loading_state_change;
     on_load_start := cef_load_handler_on_load_start;
     on_load_end := cef_load_handler_on_load_end;
     on_load_error := cef_load_handler_on_load_error;
-    on_render_process_terminated := cef_load_handler_on_render_process_terminated;
-    on_plugin_crashed := cef_load_handler_on_plugin_crashed;
   end;
 end;
 
@@ -13284,20 +13735,14 @@ begin
 
 end;
 
-procedure TCefLoadHandlerOwn.OnRenderProcessTerminated(const browser: ICefBrowser;
-  status: TCefTerminationStatus);
-begin
-
-end;
-
-procedure TCefLoadHandlerOwn.OnPluginCrashed(const browser: ICefBrowser;
-  const pluginPath: ustring);
-begin
-
-end;
-
 procedure TCefLoadHandlerOwn.OnLoadError(const browser: ICefBrowser;
   const frame: ICefFrame; errorCode: Integer; const errorText, failedUrl: ustring);
+begin
+
+end;
+
+procedure TCefLoadHandlerOwn.OnLoadingStateChange(const browser: ICefBrowser;
+  isLoading, canGoBack, canGoForward: Boolean);
 begin
 
 end;
@@ -13315,15 +13760,17 @@ begin
   inherited CreateData(SizeOf(TCefRequestHandler));
   with PCefRequestHandler(FData)^ do
   begin
+    on_before_browse := cef_request_handler_on_before_browse;
     on_before_resource_load := cef_request_handler_on_before_resource_load;
     get_resource_handler := cef_request_handler_get_resource_handler;
     on_resource_redirect := cef_request_handler_on_resource_redirect;
     get_auth_credentials := cef_request_handler_get_auth_credentials;
     on_quota_request := cef_request_handler_on_quota_request;
-    get_cookie_manager := cef_request_handler_get_cookie_manager;
     on_protocol_execution := cef_request_handler_on_protocol_execution;
-    on_before_plugin_load := cef_request_handler_on_before_plugin_load;
     on_certificate_error := cef_request_handler_on_certificate_error;
+    on_before_plugin_load := cef_request_handler_on_before_plugin_load;
+    on_plugin_crashed := cef_request_handler_on_plugin_crashed;
+    on_render_process_terminated := cef_request_handler_on_render_process_terminated;
   end;
 end;
 
@@ -13334,10 +13781,11 @@ begin
   Result := False;
 end;
 
-function TCefRequestHandlerOwn.GetCookieManager(const browser: ICefBrowser;
-  const mainUrl: ustring): ICefCookieManager;
+function TCefRequestHandlerOwn.OnBeforeBrowse(const browser: ICefBrowser;
+  const frame: ICefFrame; const request: ICefRequest;
+  isRedirect: Boolean): Boolean;
 begin
-  Result := nil;
+  Result := False;
 end;
 
 function TCefRequestHandlerOwn.OnBeforePluginLoad(const browser: ICefBrowser;
@@ -13365,6 +13813,12 @@ begin
   Result := nil;
 end;
 
+procedure TCefRequestHandlerOwn.OnPluginCrashed(const browser: ICefBrowser;
+  const pluginPath: ustring);
+begin
+
+end;
+
 procedure TCefRequestHandlerOwn.OnProtocolExecution(const browser: ICefBrowser;
   const url: ustring; out allowOsExecution: Boolean);
 begin
@@ -13376,6 +13830,12 @@ function TCefRequestHandlerOwn.OnQuotaRequest(const browser: ICefBrowser;
   const callback: ICefQuotaCallback): Boolean;
 begin
   Result := False;
+end;
+
+procedure TCefRequestHandlerOwn.OnRenderProcessTerminated(
+  const browser: ICefBrowser; status: TCefTerminationStatus);
+begin
+
 end;
 
 procedure TCefRequestHandlerOwn.OnResourceRedirect(const browser: ICefBrowser;
@@ -13391,19 +13851,12 @@ begin
   inherited CreateData(SizeOf(TCefDisplayHandler));
   with PCefDisplayHandler(FData)^ do
   begin
-    on_loading_state_change := cef_display_handler_on_loading_state_change;
     on_address_change := cef_display_handler_on_address_change;
     on_title_change := cef_display_handler_on_title_change;
     on_tooltip := cef_display_handler_on_tooltip;
     on_status_message := cef_display_handler_on_status_message;
     on_console_message := cef_display_handler_on_console_message;
   end;
-end;
-
-procedure TCefDisplayHandlerOwn.OnLoadingStateChange(const browser: ICefBrowser;
-  isLoading, canGoBack, canGoForward: Boolean);
-begin
-
 end;
 
 procedure TCefDisplayHandlerOwn.OnAddressChange(const browser: ICefBrowser;
@@ -13668,7 +14121,7 @@ end;
 { TCefCookieManagerRef }
 
 class function TCefCookieManagerRef.New(const path: ustring;
-  persistSessionCookies: Boolean): ICefCookieManager;
+  persistSessionCookies: Boolean): ICefCookieManager2;
 var
   pth: TCefString;
 begin
@@ -13700,7 +14153,7 @@ begin
   Result := FlushStore(TCefFastCompletionHandler.Create(proc))
 end;
 
-class function TCefCookieManagerRef.Global: ICefCookieManager;
+class function TCefCookieManagerRef.Global: ICefCookieManager2;
 begin
   Result := UnWrap(cef_cookie_manager_get_global_manager());
 end;
@@ -13759,10 +14212,10 @@ begin
   end;
 end;
 
-class function TCefCookieManagerRef.UnWrap(data: Pointer): ICefCookieManager;
+class function TCefCookieManagerRef.UnWrap(data: Pointer): ICefCookieManager2;
 begin
   if data <> nil then
-    Result := Create(data) as ICefCookieManager else
+    Result := Create(data) as ICefCookieManager2 else
     Result := nil;
 end;
 
@@ -13827,6 +14280,15 @@ end;
 
 { TCefBrowserHostRef }
 
+procedure TCefBrowserHostRef.Find(identifier: Integer;
+  const searchText: ustring; forward, matchCase, findNext: Boolean);
+var
+  st: TCefString;
+begin
+  st := CefString(searchText);
+  PCefBrowserHost(FData).find(FData, Ord(identifier), @st, Ord(forward), Ord(matchCase), Ord(findNext));
+end;
+
 function TCefBrowserHostRef.GetBrowser: ICefBrowser;
 begin
   Result := TCefBrowserRef.UnWrap(PCefBrowserHost(FData).get_browser(PCefBrowserHost(FData)));
@@ -13835,6 +14297,11 @@ end;
 procedure TCefBrowserHostRef.ParentWindowWillClose;
 begin
   PCefBrowserHost(FData).parent_window_will_close(PCefBrowserHost(FData));
+end;
+
+procedure TCefBrowserHostRef.Print;
+begin
+  PCefBrowserHost(FData).print(FData);
 end;
 
 procedure TCefBrowserHostRef.RunFileDialog(mode: TCefFileDialogMode;
@@ -13928,6 +14395,11 @@ begin
   Result := PCefBrowserHost(FData).get_opener_window_handle(PCefBrowserHost(FData));
 end;
 
+function TCefBrowserHostRef.GetRequestContext: ICefRequestContext;
+begin
+  Result := TCefRequestContextRef.UnWrap(PCefBrowserHost(FData).get_request_context(PCefBrowserHost(FData)));
+end;
+
 function TCefBrowserHostRef.GetDevToolsUrl(httpScheme: Boolean): ustring;
 begin
   Result := CefStringFreeAndGet(PCefBrowserHost(FData).get_dev_tools_url(PCefBrowserHost(FData), Ord(httpScheme)));
@@ -13987,6 +14459,11 @@ var
 begin
   u := CefString(url);
   PCefBrowserHost(FData).start_download(PCefBrowserHost(FData), @u);
+end;
+
+procedure TCefBrowserHostRef.StopFinding(clearSelection: Boolean);
+begin
+  PCefBrowserHost(FData).stop_finding(FData, Ord(clearSelection));
 end;
 
 class function TCefBrowserHostRef.UnWrap(data: Pointer): ICefBrowserHost;
@@ -14538,9 +15015,9 @@ begin
   Result := PCefContextMenuParams(FData).is_editable(PCefContextMenuParams(FData)) <> 0;
 end;
 
-function TCefContextMenuParamsRef.IsImageBlocked: Boolean;
+function TCefContextMenuParamsRef.HasImageContents: Boolean;
 begin
-  Result := PCefContextMenuParams(FData).is_image_blocked(PCefContextMenuParams(FData)) <> 0;
+  Result := PCefContextMenuParams(FData).has_image_contents(PCefContextMenuParams(FData)) <> 0;
 end;
 
 function TCefContextMenuParamsRef.IsSpeechInputEnabled: Boolean;
@@ -15319,6 +15796,7 @@ begin
     on_web_kit_initialized := cef_render_process_handler_on_web_kit_initialized;
     on_browser_created := cef_render_process_handler_on_browser_created;
     on_browser_destroyed := cef_render_process_handler_on_browser_destroyed;
+    get_load_handler := cef_render_process_handler_get_load_handler;
     on_before_navigation := cef_render_process_handler_on_before_navigation;
     on_context_created := cef_render_process_handler_on_context_created;
     on_context_released := cef_render_process_handler_on_context_released;
@@ -15326,6 +15804,11 @@ begin
     on_focused_node_changed := cef_render_process_handler_on_focused_node_changed;
     on_process_message_received := cef_render_process_handler_on_process_message_received;
   end;
+end;
+
+function TCefRenderProcessHandlerOwn.GetLoadHandler: ICefLoadHandler;
+begin
+  Result := nil;
 end;
 
 function TCefRenderProcessHandlerOwn.OnBeforeNavigation(
@@ -15495,7 +15978,15 @@ begin
     on_upload_progress := cef_url_request_client_on_upload_progress;
     on_download_progress := cef_url_request_client_on_download_progress;
     on_download_data := cef_url_request_client_on_download_data;
+    get_auth_credentials := cef_url_request_client_get_auth_credentials;
   end;
+end;
+
+function TCefUrlrequestClientOwn.GetAuthCredentials(isProxy: Boolean;
+  const host: ustring; port: Integer; const realm, scheme: ustring;
+  const callback: ICefAuthCallback): Boolean;
+begin
+  Result := False;
 end;
 
 procedure TCefUrlrequestClientOwn.OnDownloadData(const request: ICefUrlRequest;
@@ -16124,6 +16615,181 @@ function TCefDragHandlerOwn.OnDragEnter(const browser: ICefBrowser;
 begin
   Result := False;
 end;
+
+{ TCefRequestContextHandlerOwn }
+
+constructor TCefRequestContextHandlerOwn.Create;
+begin
+  CreateData(SizeOf(TCefRequestContextHandler), False);
+  with PCefRequestContextHandler(FData)^ do
+    get_cookie_manager := cef_request_context_handler_get_cookie_manager;
+end;
+
+function TCefRequestContextHandlerOwn.GetCookieManager: ICefCookieManager;
+begin
+  Result := nil;
+end;
+
+{ TCefCookieManagerOwn }
+
+constructor TCefCookieManagerOwn.Create;
+begin
+  CreateData(SizeOf(TCefCookieManager), False);
+  with PCefCookieManager(FData)^ do
+  begin
+    set_supported_schemes := cef_cookie_manager_set_supported_schemes;
+    visit_all_cookies := cef_cookie_manager_visit_all_cookies;
+    visit_url_cookies := cef_cookie_manager_visit_url_cookies;
+    set_cookie := cef_cookie_manager_set_cookie;
+    delete_cookies := cef_cookie_manager_delete_cookies;
+    set_storage_path := cef_cookie_manager_set_storage_path;
+    flush_store := cef_cookie_manager_flush_store;
+  end;
+end;
+
+function TCefCookieManagerOwn.DeleteCookies(const url,
+  cookieName: ustring): Boolean;
+begin
+  Result := False;
+end;
+
+function TCefCookieManagerOwn.FlushStore(
+  const handler: ICefCompletionHandler): Boolean;
+begin
+  Result := False;
+end;
+
+function TCefCookieManagerOwn.FlushStoreProc(
+  const proc: TCefCompletionHandlerProc): Boolean;
+begin
+  Result := False;
+end;
+
+function TCefCookieManagerOwn.SetCookie(const url, name, value, domain,
+  path: ustring; secure, httponly, hasExpires: Boolean; const creation,
+  lastAccess, expires: TDateTime): Boolean;
+begin
+  Result := False;
+end;
+
+function TCefCookieManagerOwn.SetStoragePath(const path: ustring;
+  persistSessionCookies: Boolean): Boolean;
+begin
+  Result := False;
+end;
+
+procedure TCefCookieManagerOwn.SetSupportedSchemes(schemes: TStrings);
+begin
+
+end;
+
+function TCefCookieManagerOwn.VisitAllCookies(
+  const visitor: ICefCookieVisitor): Boolean;
+begin
+  Result := False;
+end;
+
+function TCefCookieManagerOwn.VisitUrlCookies(const url: ustring;
+  includeHttpOnly: Boolean; const visitor: ICefCookieVisitor): Boolean;
+begin
+  Result := False;
+end;
+
+{ TCefCookieVisitorRef }
+
+class function TCefCookieVisitorRef.UnWrap(data: Pointer): ICefCookieVisitor;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefCookieVisitor else
+    Result := nil;
+end;
+
+function TCefCookieVisitorRef.visit(const name, value, domain, path: ustring;
+  secure, httponly, hasExpires: Boolean; const creation, lastAccess,
+  expires: TDateTime; count, total: Integer;
+  out deleteCookie: Boolean): Boolean;
+var
+  c: TCefCookie;
+  d: Integer;
+begin
+  d := Ord(False);
+  FillChar(c, SizeOf(c), 0);
+  c.name := CefString(name);
+  c.value := CefString(value);
+  c.domain := CefString(domain);
+  c.path := CefString(path);
+  c.secure := secure;
+  c.httponly := httponly;
+  c.creation := DateTimeToCefTime(creation);
+  c.last_access := DateTimeToCefTime(lastAccess);
+  c.has_expires := hasExpires;
+  c.expires := DateTimeToCefTime(expires);
+  Result := PCefCookieVisitor(FData).visit(FData, @c, count, total, @d) <> 0;
+end;
+
+{ TCefCompletionHandlerRef }
+
+procedure TCefCompletionHandlerRef.OnComplete;
+begin
+  PCefCompletionHandler(FData).on_complete(FData);
+end;
+
+class function TCefCompletionHandlerRef.UnWrap(
+  data: Pointer): ICefCompletionHandler;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefCompletionHandler else
+    Result := nil;
+end;
+
+{ TCefRequestContextRef }
+
+function TCefRequestContextRef.IsSame(const other: ICefRequestContext): Boolean;
+begin
+  Result := PCefRequestContext(FData).is_same(FData, CefGetData(other)) <> 0;
+end;
+
+function TCefRequestContextRef.IsGlobal: Boolean;
+begin
+  Result := PCefRequestContext(FData).is_global(FData) <> 0;
+end;
+
+function TCefRequestContextRef.GetHandler: ICefBase;
+begin
+  Result := TCefBaseRef.UnWrap(PCefRequestContext(FData).get_handler(FData));
+end;
+
+class function TCefRequestContextRef.UnWrap(data: Pointer): ICefRequestContext;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefRequestContext else
+    Result := nil;
+end;
+
+class function TCefRequestContextRef.GetGlobalContext: ICefRequestContext;
+begin
+  Result := UnWrap(cef_request_context_get_global_context());
+end;
+
+class function TCefRequestContextRef.CreateContext(const handler: ICefRequestContextHandler): ICefRequestContext;
+begin
+  Result := UnWrap(cef_request_context_create_context(CefGetData(handler)));
+end;
+
+{ TCefRequestContextHandlerRef }
+
+function TCefRequestContextHandlerRef.GetCookieManager: ICefCookieManager;
+begin
+  Result := TCefCookieManagerRef.UnWrap(PCefRequestContextHandler(FData).get_cookie_manager(FData));
+end;
+
+class function TCefRequestContextHandlerRef.UnWrap(data: Pointer): ICefRequestContextHandler;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefRequestContextHandler else
+    Result := nil;
+end;
+
 
 initialization
   IsMultiThread := True;

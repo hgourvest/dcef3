@@ -43,7 +43,7 @@ type
     FOnLoadError: TOnLoadError;
     FOnRenderProcessTerminated: TOnRenderProcessTerminated;
     FOnPluginCrashed: TOnPluginCrashed;
-    FOnTakeFocus: TOnTakeFocus;
+    FOnTakeFocus: TOnTakeFocus;
     FOnSetFocus: TOnSetFocus;
     FOnGotFocus: TOnGotFocus;
     FOnBeforeContextMenu: TOnBeforeContextMenu;
@@ -52,8 +52,8 @@ type
     FOnPreKeyEvent: TOnPreKeyEvent;
     FOnKeyEvent: TOnKeyEvent;
     FOnLoadingStateChange: TOnLoadingStateChange;
-    FOnAddressChange: TOnAddressChange;
-    FOnTitleChange: TOnTitleChange;
+    FOnAddressChange: TOnAddressChange;
+    FOnTitleChange: TOnTitleChange;
     FOnTooltip: TOnTooltip;
     FOnStatusMessage: TOnStatusMessage;
     FOnConsoleMessage: TOnConsoleMessage;
@@ -70,6 +70,7 @@ type
     FOnBeforeClose: TOnBeforeClose;
     FOnRunModal: TOnRunModal;
     FOnClose: TOnClose;
+    FOnBeforeBrowse: TOnBeforeBrowse;
     FOnBeforeResourceLoad: TOnBeforeResourceLoad;
     FOnGetResourceHandler: TOnGetResourceHandler;
     FOnResourceRedirect: TOnResourceRedirect;
@@ -166,6 +167,8 @@ type
     function doOnRunModal(const browser: ICefBrowser): Boolean; virtual;
     function doOnClose(const browser: ICefBrowser): Boolean; virtual;
 
+    function doOnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; isRedirect: Boolean): Boolean; virtual;
     function doOnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest): Boolean; virtual;
     function doOnGetResourceHandler(const browser: ICefBrowser; const frame: ICefFrame;
@@ -177,8 +180,7 @@ type
       const callback: ICefAuthCallback): Boolean; virtual;
     function doOnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
       newSize: Int64; const callback: ICefQuotaCallback): Boolean; virtual;
-    function doOnGetCookieManager(const browser: ICefBrowser;
-      const mainUrl: ustring): ICefCookieManager; virtual;
+    function doOnGetCookieManager: ICefCookieManager; virtual;
     procedure doOnProtocolExecution(const browser: ICefBrowser;
       const url: ustring; out allowOsExecution: Boolean); virtual;
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url,
@@ -210,7 +212,7 @@ type
     property OnLoadError: TOnLoadError read FOnLoadError write FOnLoadError;
     property OnRenderProcessTerminated: TOnRenderProcessTerminated read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
     property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed write FOnPluginCrashed;
-    property OnTakeFocus: TOnTakeFocus read FOnTakeFocus write FOnTakeFocus;
+    property OnTakeFocus: TOnTakeFocus read FOnTakeFocus write FOnTakeFocus;
     property OnSetFocus: TOnSetFocus read FOnSetFocus write FOnSetFocus;
     property OnGotFocus: TOnGotFocus read FOnGotFocus write FOnGotFocus;
     property OnBeforeContextMenu: TOnBeforeContextMenu read FOnBeforeContextMenu write FOnBeforeContextMenu;
@@ -219,8 +221,8 @@ type
     property OnPreKeyEvent: TOnPreKeyEvent read FOnPreKeyEvent write FOnPreKeyEvent;
     property OnKeyEvent: TOnKeyEvent read FOnKeyEvent write FOnKeyEvent;
     property OnLoadingStateChange: TOnLoadingStateChange read FOnLoadingStateChange write FOnLoadingStateChange;
-    property OnAddressChange: TOnAddressChange read FOnAddressChange write FOnAddressChange;
-    property OnTitleChange: TOnTitleChange read FOnTitleChange write FOnTitleChange;
+    property OnAddressChange: TOnAddressChange read FOnAddressChange write FOnAddressChange;
+    property OnTitleChange: TOnTitleChange read FOnTitleChange write FOnTitleChange;
     property OnTooltip: TOnTooltip read FOnTooltip write FOnTooltip;
     property OnStatusMessage: TOnStatusMessage read FOnStatusMessage write FOnStatusMessage;
     property OnConsoleMessage: TOnConsoleMessage read FOnConsoleMessage write FOnConsoleMessage;
@@ -237,6 +239,7 @@ type
     property OnBeforeClose: TOnBeforeClose read FOnBeforeClose write FOnBeforeClose;
     property OnRunModal: TOnRunModal read FOnRunModal write FOnRunModal;
     property OnClose: TOnClose read FOnClose write FOnClose;
+    property OnBeforeBrowse: TOnBeforeBrowse read FOnBeforeBrowse write FOnBeforeBrowse;
     property OnBeforeResourceLoad: TOnBeforeResourceLoad read FOnBeforeResourceLoad write FOnBeforeResourceLoad;
     property OnGetResourceHandler: TOnGetResourceHandler read FOnGetResourceHandler write FOnGetResourceHandler;
     property OnResourceRedirect: TOnResourceRedirect read FOnResourceRedirect write FOnResourceRedirect;
@@ -277,7 +280,7 @@ type
     property OnLoadError;
     property OnRenderProcessTerminated;
     property OnPluginCrashed;
-    property OnTakeFocus;
+    property OnTakeFocus;
     property OnSetFocus;
     property OnGotFocus;
     property OnBeforeContextMenu;
@@ -286,8 +289,8 @@ type
     property OnPreKeyEvent;
     property OnKeyEvent;
     property OnLoadingStateChange;
-    property OnAddressChange;
-    property OnTitleChange;
+    property OnAddressChange;
+    property OnTitleChange;
     property OnTooltip;
     property OnStatusMessage;
     property OnConsoleMessage;
@@ -304,6 +307,7 @@ type
     property OnBeforeClose;
     property OnRunModal;
     property OnClose;
+    property OnBeforeBrowse;
     property OnBeforeResourceLoad;
     property OnGetResourceHandler;
     property OnResourceRedirect;
@@ -346,6 +350,8 @@ begin
     TMouseButton.mbLeft: Result := MBT_LEFT;
     TMouseButton.mbRight: Result := MBT_RIGHT;
     TMouseButton.mbMiddle: Result := MBT_MIDDLE;
+  else
+    Result := MBT_LEFT;
   end;
 end;
 
@@ -407,9 +413,11 @@ begin
     settings.size := SizeOf(TCefBrowserSettings);
     GetSettings(settings);
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
-    CefBrowserCreate(@info, FHandler.Wrap, FDefaultUrl, @settings);
+    CefBrowserCreate(@info, FHandler.Wrap, FDefaultUrl, @settings,
+      TCefRequestContextRef.CreateContext((FHandler as ICefClientHandler).GetRequestContextHandler));
 {$ELSE}
-    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @settings);
+    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @settings,
+      TCefRequestContextRef.CreateContext((FHandler as ICefClientHandler).GetRequestContextHandler));
 {$ENDIF}
   end;
 end;
@@ -516,6 +524,14 @@ begin
   if Assigned(FOnBeforePopup) then
     FOnBeforePopup(Self, browser, frame, targetUrl, targetFrameName, popupFeatures,
       windowInfo, client, settings, noJavascriptAccess, Result);
+end;
+
+function TCustomChromiumFMX.doOnBeforeBrowse(const browser: ICefBrowser;
+  const frame: ICefFrame; const request: ICefRequest; isRedirect: Boolean): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnBeforeBrowse) then
+    FOnBeforeBrowse(Self, browser, frame, request, Result, isRedirect);
 end;
 
 function TCustomChromiumFMX.doOnBeforeResourceLoad(const browser: ICefBrowser;
@@ -638,11 +654,10 @@ begin
       port, realm, scheme, callback, Result);
 end;
 
-function TCustomChromiumFMX.doOnGetCookieManager(const browser: ICefBrowser;
-  const mainUrl: ustring): ICefCookieManager;
+function TCustomChromiumFMX.doOnGetCookieManager: ICefCookieManager;
 begin
   if Assigned(FOnGetCookieManager) then
-    FOnGetCookieManager(Self, browser, mainUrl, Result) else
+    FOnGetCookieManager(Self, Result) else
     Result := nil;
 end;
 

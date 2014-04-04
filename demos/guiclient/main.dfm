@@ -199,6 +199,10 @@ object MainForm: TMainForm
       Caption = 'Debug in Chrome'
       OnExecute = actChromeDevToolExecute
     end
+    object actPrint: TAction
+      Caption = 'Print'
+      OnExecute = actPrintExecute
+    end
   end
   object MainMenu: TMainMenu
     Left = 624
@@ -206,7 +210,7 @@ object MainForm: TMainForm
     object File1: TMenuItem
       Caption = '&File'
       object Print1: TMenuItem
-        Caption = 'Print'
+        Action = actPrint
       end
       object Exit1: TMenuItem
         Caption = 'Exit'

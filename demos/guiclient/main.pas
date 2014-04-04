@@ -58,6 +58,7 @@ type
     actFileScheme: TAction;
     actChromeDevTool: TAction;
     DebuginChrome1: TMenuItem;
+    actPrint: TAction;
     procedure edAddressKeyPress(Sender: TObject; var Key: Char);
     procedure actPrevExecute(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
@@ -109,6 +110,7 @@ type
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var client: ICefClient; var settings: TCefBrowserSettings;
       var noJavascriptAccess: Boolean; out Result: Boolean);
+    procedure actPrintExecute(Sender: TObject);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -273,6 +275,12 @@ begin
   if crm.Browser <> nil then
     actPrev.Enabled := crm.Browser.CanGoBack else
     actPrev.Enabled := False;
+end;
+
+procedure TMainForm.actPrintExecute(Sender: TObject);
+begin
+  if crm.Browser <> nil then
+    crm.Browser.Host.Print;
 end;
 
 procedure TMainForm.actReloadExecute(Sender: TObject);

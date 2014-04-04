@@ -46,7 +46,7 @@ type
     FOnLoadError: TOnLoadError;
     FOnRenderProcessTerminated: TOnRenderProcessTerminated;
     FOnPluginCrashed: TOnPluginCrashed;
-    FOnTakeFocus: TOnTakeFocus;
+    FOnTakeFocus: TOnTakeFocus;
     FOnSetFocus: TOnSetFocus;
     FOnGotFocus: TOnGotFocus;
     FOnBeforeContextMenu: TOnBeforeContextMenu;
@@ -55,8 +55,8 @@ type
     FOnPreKeyEvent: TOnPreKeyEvent;
     FOnKeyEvent: TOnKeyEvent;
     FOnLoadingStateChange: TOnLoadingStateChange;
-    FOnAddressChange: TOnAddressChange;
-    FOnTitleChange: TOnTitleChange;
+    FOnAddressChange: TOnAddressChange;
+    FOnTitleChange: TOnTitleChange;
     FOnTooltip: TOnTooltip;
     FOnStatusMessage: TOnStatusMessage;
     FOnConsoleMessage: TOnConsoleMessage;
@@ -73,6 +73,7 @@ type
     FOnBeforeClose: TOnBeforeClose;
     FOnRunModal: TOnRunModal;
     FOnClose: TOnClose;
+    FOnBeforeBrowse: TOnBeforeBrowse;
     FOnBeforeResourceLoad: TOnBeforeResourceLoad;
     FOnGetResourceHandler: TOnGetResourceHandler;
     FOnResourceRedirect: TOnResourceRedirect;
@@ -159,6 +160,8 @@ type
     function doOnRunModal(const browser: ICefBrowser): Boolean; virtual;
     function doOnClose(const browser: ICefBrowser): Boolean; virtual;
 
+    function doOnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; isRedirect: Boolean): Boolean; virtual;
     function doOnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest): Boolean; virtual;
     function doOnGetResourceHandler(const browser: ICefBrowser; const frame: ICefFrame;
@@ -170,8 +173,7 @@ type
       const callback: ICefAuthCallback): Boolean; virtual;
     function doOnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
       newSize: Int64; const callback: ICefQuotaCallback): Boolean; virtual;
-    function doOnGetCookieManager(const browser: ICefBrowser;
-      const mainUrl: ustring): ICefCookieManager; virtual;
+    function doOnGetCookieManager: ICefCookieManager; virtual;
     procedure doOnProtocolExecution(const browser: ICefBrowser;
       const url: ustring; out allowOsExecution: Boolean); virtual;
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url,
@@ -203,7 +205,7 @@ type
     property OnLoadError: TOnLoadError read FOnLoadError write FOnLoadError;
     property OnRenderProcessTerminated: TOnRenderProcessTerminated read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
     property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed write FOnPluginCrashed;
-    property OnTakeFocus: TOnTakeFocus read FOnTakeFocus write FOnTakeFocus;
+    property OnTakeFocus: TOnTakeFocus read FOnTakeFocus write FOnTakeFocus;
     property OnSetFocus: TOnSetFocus read FOnSetFocus write FOnSetFocus;
     property OnGotFocus: TOnGotFocus read FOnGotFocus write FOnGotFocus;
     property OnBeforeContextMenu: TOnBeforeContextMenu read FOnBeforeContextMenu write FOnBeforeContextMenu;
@@ -212,8 +214,8 @@ type
     property OnPreKeyEvent: TOnPreKeyEvent read FOnPreKeyEvent write FOnPreKeyEvent;
     property OnKeyEvent: TOnKeyEvent read FOnKeyEvent write FOnKeyEvent;
     property OnLoadingStateChange: TOnLoadingStateChange read FOnLoadingStateChange write FOnLoadingStateChange;
-    property OnAddressChange: TOnAddressChange read FOnAddressChange write FOnAddressChange;
-    property OnTitleChange: TOnTitleChange read FOnTitleChange write FOnTitleChange;
+    property OnAddressChange: TOnAddressChange read FOnAddressChange write FOnAddressChange;
+    property OnTitleChange: TOnTitleChange read FOnTitleChange write FOnTitleChange;
     property OnTooltip: TOnTooltip read FOnTooltip write FOnTooltip;
     property OnStatusMessage: TOnStatusMessage read FOnStatusMessage write FOnStatusMessage;
     property OnConsoleMessage: TOnConsoleMessage read FOnConsoleMessage write FOnConsoleMessage;
@@ -230,6 +232,7 @@ type
     property OnBeforeClose: TOnBeforeClose read FOnBeforeClose write FOnBeforeClose;
     property OnRunModal: TOnRunModal read FOnRunModal write FOnRunModal;
     property OnClose: TOnClose read FOnClose write FOnClose;
+    property OnBeforeBrowse: TOnBeforeBrowse read FOnBeforeBrowse write FOnBeforeBrowse;
     property OnBeforeResourceLoad: TOnBeforeResourceLoad read FOnBeforeResourceLoad write FOnBeforeResourceLoad;
     property OnGetResourceHandler: TOnGetResourceHandler read FOnGetResourceHandler write FOnGetResourceHandler;
     property OnResourceRedirect: TOnResourceRedirect read FOnResourceRedirect write FOnResourceRedirect;
@@ -268,7 +271,7 @@ type
     FOnLoadError: TOnLoadError;
     FOnRenderProcessTerminated: TOnRenderProcessTerminated;
     FOnPluginCrashed: TOnPluginCrashed;
-    FOnTakeFocus: TOnTakeFocus;
+    FOnTakeFocus: TOnTakeFocus;
     FOnSetFocus: TOnSetFocus;
     FOnGotFocus: TOnGotFocus;
     FOnBeforeContextMenu: TOnBeforeContextMenu;
@@ -277,8 +280,8 @@ type
     FOnPreKeyEvent: TOnPreKeyEvent;
     FOnKeyEvent: TOnKeyEvent;
     FOnLoadingStateChange: TOnLoadingStateChange;
-    FOnAddressChange: TOnAddressChange;
-    FOnTitleChange: TOnTitleChange;
+    FOnAddressChange: TOnAddressChange;
+    FOnTitleChange: TOnTitleChange;
     FOnTooltip: TOnTooltip;
     FOnStatusMessage: TOnStatusMessage;
     FOnConsoleMessage: TOnConsoleMessage;
@@ -295,6 +298,7 @@ type
     FOnBeforeClose: TOnBeforeClose;
     FOnRunModal: TOnRunModal;
     FOnClose: TOnClose;
+    FOnBeforeBrowse: TOnBeforeBrowse;
     FOnBeforeResourceLoad: TOnBeforeResourceLoad;
     FOnGetResourceHandler: TOnGetResourceHandler;
     FOnResourceRedirect: TOnResourceRedirect;
@@ -389,6 +393,8 @@ type
     function doOnRunModal(const browser: ICefBrowser): Boolean; virtual;
     function doOnClose(const browser: ICefBrowser): Boolean; virtual;
 
+    function doOnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; isRedirect: Boolean): Boolean; virtual;
     function doOnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest): Boolean; virtual;
     function doOnGetResourceHandler(const browser: ICefBrowser; const frame: ICefFrame;
@@ -400,8 +406,7 @@ type
       const callback: ICefAuthCallback): Boolean; virtual;
     function doOnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
       newSize: Int64; const callback: ICefQuotaCallback): Boolean; virtual;
-    function doOnGetCookieManager(const browser: ICefBrowser;
-      const mainUrl: ustring): ICefCookieManager; virtual;
+    function doOnGetCookieManager: ICefCookieManager; virtual;
     procedure doOnProtocolExecution(const browser: ICefBrowser;
       const url: ustring; out allowOsExecution: Boolean); virtual;
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url,
@@ -433,7 +438,7 @@ type
     property OnLoadError: TOnLoadError read FOnLoadError write FOnLoadError;
     property OnRenderProcessTerminated: TOnRenderProcessTerminated read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
     property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed write FOnPluginCrashed;
-    property OnTakeFocus: TOnTakeFocus read FOnTakeFocus write FOnTakeFocus;
+    property OnTakeFocus: TOnTakeFocus read FOnTakeFocus write FOnTakeFocus;
     property OnSetFocus: TOnSetFocus read FOnSetFocus write FOnSetFocus;
     property OnGotFocus: TOnGotFocus read FOnGotFocus write FOnGotFocus;
     property OnBeforeContextMenu: TOnBeforeContextMenu read FOnBeforeContextMenu write FOnBeforeContextMenu;
@@ -442,8 +447,8 @@ type
     property OnPreKeyEvent: TOnPreKeyEvent read FOnPreKeyEvent write FOnPreKeyEvent;
     property OnKeyEvent: TOnKeyEvent read FOnKeyEvent write FOnKeyEvent;
     property OnLoadingStateChange: TOnLoadingStateChange read FOnLoadingStateChange write FOnLoadingStateChange;
-    property OnAddressChange: TOnAddressChange read FOnAddressChange write FOnAddressChange;
-    property OnTitleChange: TOnTitleChange read FOnTitleChange write FOnTitleChange;
+    property OnAddressChange: TOnAddressChange read FOnAddressChange write FOnAddressChange;
+    property OnTitleChange: TOnTitleChange read FOnTitleChange write FOnTitleChange;
     property OnTooltip: TOnTooltip read FOnTooltip write FOnTooltip;
     property OnStatusMessage: TOnStatusMessage read FOnStatusMessage write FOnStatusMessage;
     property OnConsoleMessage: TOnConsoleMessage read FOnConsoleMessage write FOnConsoleMessage;
@@ -460,6 +465,7 @@ type
     property OnBeforeClose: TOnBeforeClose read FOnBeforeClose write FOnBeforeClose;
     property OnRunModal: TOnRunModal read FOnRunModal write FOnRunModal;
     property OnClose: TOnClose read FOnClose write FOnClose;
+    property OnBeforeBrowse: TOnBeforeBrowse read FOnBeforeBrowse write FOnBeforeBrowse;
     property OnBeforeResourceLoad: TOnBeforeResourceLoad read FOnBeforeResourceLoad write FOnBeforeResourceLoad;
     property OnGetResourceHandler: TOnGetResourceHandler read FOnGetResourceHandler write FOnGetResourceHandler;
     property OnResourceRedirect: TOnResourceRedirect read FOnResourceRedirect write FOnResourceRedirect;
@@ -514,7 +520,7 @@ type
     property OnLoadError;
     property OnRenderProcessTerminated;
     property OnPluginCrashed;
-    property OnTakeFocus;
+    property OnTakeFocus;
     property OnSetFocus;
     property OnGotFocus;
     property OnBeforeContextMenu;
@@ -523,8 +529,8 @@ type
     property OnPreKeyEvent;
     property OnKeyEvent;
     property OnLoadingStateChange;
-    property OnAddressChange;
-    property OnTitleChange;
+    property OnAddressChange;
+    property OnTitleChange;
     property OnTooltip;
     property OnStatusMessage;
     property OnConsoleMessage;
@@ -541,6 +547,7 @@ type
     property OnBeforeClose;
     property OnRunModal;
     property OnClose;
+    property OnBeforeBrowse;
     property OnBeforeResourceLoad;
     property OnGetResourceHandler;
     property OnResourceRedirect;
@@ -569,7 +576,7 @@ type
     property OnLoadError;
     property OnRenderProcessTerminated;
     property OnPluginCrashed;
-    property OnTakeFocus;
+    property OnTakeFocus;
     property OnSetFocus;
     property OnGotFocus;
     property OnBeforeContextMenu;
@@ -578,8 +585,8 @@ type
     property OnPreKeyEvent;
     property OnKeyEvent;
     property OnLoadingStateChange;
-    property OnAddressChange;
-    property OnTitleChange;
+    property OnAddressChange;
+    property OnTitleChange;
     property OnTooltip;
     property OnStatusMessage;
     property OnConsoleMessage;
@@ -596,6 +603,7 @@ type
     property OnBeforeClose;
     property OnRunModal;
     property OnClose;
+    property OnBeforeBrowse;
     property OnBeforeResourceLoad;
     property OnGetResourceHandler;
     property OnResourceRedirect;
@@ -720,9 +728,11 @@ begin
     settings.size := SizeOf(TCefBrowserSettings);
     GetSettings(settings);
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
-    CefBrowserHostCreate(@info, FHandler, FDefaultUrl, @settings);
+    CefBrowserHostCreate(@info, FHandler, FDefaultUrl, @settings,
+      TCefRequestContextRef.CreateContext((FHandler as ICefClientHandler).GetRequestContextHandler));
 {$ELSE}
-    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @settings);
+    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @settings,
+      TCefRequestContextRef.CreateContext((FHandler as ICefClientHandler).GetRequestContextHandler));
     FBrowserId := FBrowser.Identifier;
 {$ENDIF}
   end;
@@ -934,6 +944,14 @@ begin
       windowInfo, client, settings, noJavascriptAccess, Result);
 end;
 
+function TCustomChromium.doOnBeforeBrowse(const browser: ICefBrowser;
+  const frame: ICefFrame; const request: ICefRequest; isRedirect: Boolean): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnBeforeBrowse) then
+    FOnBeforeBrowse(Self, browser, frame, request, isRedirect, Result);
+end;
+
 function TCustomChromium.doOnBeforeResourceLoad(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest): Boolean;
 begin
@@ -1030,11 +1048,10 @@ begin
       port, realm, scheme, callback, Result);
 end;
 
-function TCustomChromium.doOnGetCookieManager(const browser: ICefBrowser;
-  const mainUrl: ustring): ICefCookieManager;
+function TCustomChromium.doOnGetCookieManager: ICefCookieManager;
 begin
   if Assigned(FOnGetCookieManager) then
-    FOnGetCookieManager(Self, browser, mainUrl, Result) else
+    FOnGetCookieManager(Self, Result) else
     Result := nil;
 end;
 
@@ -1449,6 +1466,14 @@ begin
       windowInfo, client, settings, noJavascriptAccess, Result);
 end;
 
+function TCustomChromiumOSR.doOnBeforeBrowse(const browser: ICefBrowser;
+  const frame: ICefFrame; const request: ICefRequest; isRedirect: Boolean): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnBeforeBrowse) then
+    FOnBeforeBrowse(Self, browser, frame, request, isRedirect, Result);
+end;
+
 function TCustomChromiumOSR.doOnBeforeResourceLoad(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest): Boolean;
 begin
@@ -1546,11 +1571,10 @@ begin
       port, realm, scheme, callback, Result);
 end;
 
-function TCustomChromiumOSR.doOnGetCookieManager(const browser: ICefBrowser;
-  const mainUrl: ustring): ICefCookieManager;
+function TCustomChromiumOSR.doOnGetCookieManager: ICefCookieManager;
 begin
   if Assigned(FOnGetCookieManager) then
-    FOnGetCookieManager(Self, browser, mainUrl, Result) else
+    FOnGetCookieManager(Self, Result) else
     Result := nil;
 end;
 
