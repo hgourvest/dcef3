@@ -731,6 +731,7 @@ begin
     CefBrowserHostCreate(@info, FHandler, FDefaultUrl, @settings,
       TCefRequestContextRef.CreateContext((FHandler as ICefClientHandler).GetRequestContextHandler));
 {$ELSE}
+    CefLoadLibDefault;
     FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @settings,
       TCefRequestContextRef.CreateContext((FHandler as ICefClientHandler).GetRequestContextHandler));
     FBrowserId := FBrowser.Identifier;
