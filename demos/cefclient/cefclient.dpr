@@ -174,7 +174,7 @@ begin
           info.Height := rect.bottom - rect.top;
           FillChar(setting, sizeof(setting), 0);
           setting.size := SizeOf(setting);
-          CefBrowserHostCreate(@info, handl, navigateto, @setting);
+          CefBrowserHostCreate(@info, handl, navigateto, @setting, nil);
           isLoading := False;
           canGoBack := False;
           canGoForward := False;

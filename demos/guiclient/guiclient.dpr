@@ -16,12 +16,14 @@ begin
 end;
 
 begin
+  CefCache := 'cache';
   CefOnRegisterCustomSchemes := RegisterSchemes;
   CefSingleProcess := False;
   if not CefLoadLibDefault then
     Exit;
 
   CefRegisterSchemeHandlerFactory('local', '', False, TFileScheme);
+
 
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);

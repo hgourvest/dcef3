@@ -18,20 +18,11 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Splitter1: TSplitter
-    Left = 0
-    Top = 429
-    Width = 864
-    Height = 3
-    Cursor = crVSplit
-    Align = alBottom
-    Visible = False
-  end
   object crm: TChromium
     Left = 0
     Top = 25
     Width = 864
-    Height = 404
+    Height = 608
     Align = alClient
     DefaultUrl = 'http://www.google.com'
     TabOrder = 0
@@ -45,6 +36,7 @@ object MainForm: TMainForm
     OnDownloadUpdated = crmDownloadUpdated
     OnBeforePopup = crmBeforePopup
     OnBeforeResourceLoad = crmBeforeResourceLoad
+    ExplicitHeight = 404
   end
   object StatusBar: TStatusBar
     Left = 0
@@ -54,23 +46,13 @@ object MainForm: TMainForm
     Panels = <>
     SimplePanel = True
   end
-  object debug: TChromium
-    Left = 0
-    Top = 432
-    Width = 864
-    Height = 201
-    Align = alBottom
-    DefaultUrl = 'about:blank'
-    TabOrder = 2
-    Visible = False
-  end
   object Panel1: TPanel
     Left = 0
     Top = 0
     Width = 864
     Height = 25
     Align = alTop
-    TabOrder = 3
+    TabOrder = 2
     DesignSize = (
       864
       25)
@@ -180,7 +162,6 @@ object MainForm: TMainForm
     end
     object actDevTool: TAction
       Caption = 'Show DevTools'
-      ShortCut = 123
       OnExecute = actDevToolExecute
     end
     object actDoc: TAction
@@ -195,9 +176,13 @@ object MainForm: TMainForm
       Caption = 'File Scheme'
       OnExecute = actFileSchemeExecute
     end
-    object actChromeDevTool: TAction
-      Caption = 'Debug in Chrome'
-      OnExecute = actChromeDevToolExecute
+    object actCloseDevTools: TAction
+      Caption = 'Close Dev Tools'
+      OnExecute = actCloseDevToolsExecute
+    end
+    object actPrint: TAction
+      Caption = 'Print'
+      OnExecute = actPrintExecute
     end
   end
   object MainMenu: TMainMenu
@@ -206,7 +191,7 @@ object MainForm: TMainForm
     object File1: TMenuItem
       Caption = '&File'
       object Print1: TMenuItem
-        Caption = 'Print'
+        Action = actPrint
       end
       object Exit1: TMenuItem
         Caption = 'Exit'
@@ -243,8 +228,8 @@ object MainForm: TMainForm
       object DevelopperTools1: TMenuItem
         Action = actDevTool
       end
-      object DebuginChrome1: TMenuItem
-        Action = actChromeDevTool
+      object CloseDevTools1: TMenuItem
+        Action = actCloseDevTools
       end
     end
     object Help1: TMenuItem

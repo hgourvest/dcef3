@@ -41,8 +41,6 @@ type
     SaveDialog: TSaveDialog;
     actDevTool: TAction;
     DevelopperTools1: TMenuItem;
-    debug: TChromium;
-    Splitter1: TSplitter;
     Panel1: TPanel;
     SpeedButton1: TSpeedButton;
     SpeedButton2: TSpeedButton;
@@ -56,8 +54,9 @@ type
     actGroup: TAction;
     Googlegroup1: TMenuItem;
     actFileScheme: TAction;
-    actChromeDevTool: TAction;
-    DebuginChrome1: TMenuItem;
+    actCloseDevTools: TAction;
+    CloseDevTools1: TMenuItem;
+    actPrint: TAction;
     procedure edAddressKeyPress(Sender: TObject; var Key: Char);
     procedure actPrevExecute(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
@@ -101,7 +100,6 @@ type
     procedure crmProcessMessageReceived(Sender: TObject;
       const browser: ICefBrowser; sourceProcess: TCefProcessId;
       const message: ICefProcessMessage; out Result: Boolean);
-    procedure actChromeDevToolExecute(Sender: TObject);
     procedure crmBeforeResourceLoad(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest; out Result: Boolean);
     procedure crmBeforePopup(Sender: TObject; const browser: ICefBrowser;
@@ -109,10 +107,11 @@ type
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var client: ICefClient; var settings: TCefBrowserSettings;
       var noJavascriptAccess: Boolean; out Result: Boolean);
+    procedure actCloseDevToolsExecute(Sender: TObject);
+    procedure actPrintExecute(Sender: TObject);
   private
     { Déclarations privées }
     FLoading: Boolean;
-    FDevToolLoaded: Boolean;
     function IsMain(const b: ICefBrowser; const f: ICefFrame = nil): Boolean;
   end;
 
@@ -134,41 +133,14 @@ implementation
 
 {$R *.dfm}
 
-procedure TMainForm.actChromeDevToolExecute(Sender: TObject);
-var
-  reg: TRegistry;
-  path, url: string;
+procedure TMainForm.actCloseDevToolsExecute(Sender: TObject);
 begin
-  reg := TRegistry.Create;
-  try
-    reg.RootKey := HKEY_LOCAL_MACHINE;
-    if reg.OpenKeyReadOnly('\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe') then
-      path := ExtractFilePath(reg.ReadString('')) else
-      Exit;
-  finally
-    reg.Free;
-  end;
-
-  if DirectoryExists(path) then
-  begin
-    url := crm.Browser.Host.GetDevToolsUrl(True);
-    ShellExecute(0, 'open', 'chrome.exe', PChar(url), PChar(Path), 0);
-  end;
+  crm.Browser.Host.CloseDevTools;
 end;
 
 procedure TMainForm.actDevToolExecute(Sender: TObject);
 begin
-  actDevTool.Checked := not actDevTool.Checked;
-  debug.Visible := actDevTool.Checked;
-  Splitter1.Visible := actDevTool.Checked;
-  if actDevTool.Checked then
-  begin
-    if not FDevToolLoaded then
-    begin
-      debug.Load(crm.Browser.Host.GetDevToolsUrl(True));
-      FDevToolLoaded := True;
-    end;
-  end;
+  crm.ShowDevTools;
 end;
 
 procedure TMainForm.actDocExecute(Sender: TObject);
@@ -273,6 +245,11 @@ begin
   if crm.Browser <> nil then
     actPrev.Enabled := crm.Browser.CanGoBack else
     actPrev.Enabled := False;
+end;
+
+procedure TMainForm.actPrintExecute(Sender: TObject);
+begin
+  crm.Browser.Host.Print;
 end;
 
 procedure TMainForm.actReloadExecute(Sender: TObject);
@@ -423,19 +400,13 @@ procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   // avoid AV when closing application
   if CefSingleProcess then
-  begin
     crm.Load('about:blank');
-    debug.Load('about:blank');
-    while debug.Browser.IsLoading or crm.Browser.IsLoading  do
-      Application.ProcessMessages;
-  end;
   CanClose := True;
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FLoading := False;
-  FDevToolLoaded := False;
 end;
 
 { TCustomRenderProcessHandler }

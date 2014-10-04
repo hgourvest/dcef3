@@ -58,7 +58,7 @@ begin
         info.Height := rect.bottom - rect.top;
         FillChar(setting, sizeof(setting), 0);
         setting.size := SizeOf(setting);
-        CefBrowserHostCreateSync(@info, handl, navigateto, @setting);
+        CefBrowserHostCreateSync(@info, handl, navigateto, @setting, nil);
         SetTimer(Wnd, 1, 100, nil);
         result := 0;
       end;
