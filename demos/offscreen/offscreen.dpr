@@ -8,10 +8,9 @@ uses
 {$R *.res}
 
 begin
-
+  CefSingleProcess := False;
   if not CefLoadLibDefault then
     Exit;
-
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TMainform, Mainform);

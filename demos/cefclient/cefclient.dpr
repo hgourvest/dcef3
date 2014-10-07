@@ -246,11 +246,7 @@ begin
           result := DefWindowProc(Wnd, message, wParam, lParam);
         end;
       WM_CLOSE:
-        begin
-          if brows <> nil then
-            brows.Host.ParentWindowWillClose;
           result := DefWindowProc(Wnd, message, wParam, lParam);
-        end
      else
        result := DefWindowProc(Wnd, message, wParam, lParam);
      end;

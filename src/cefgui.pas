@@ -67,7 +67,7 @@ type
       const callback: ICefDownloadItemCallback) of object;
 
   TOnRequestGeolocationPermission = procedure(Sender: TObject; const browser: ICefBrowser;
-    const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback) of object;
+    const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback; out Result: Boolean) of object;
   TOnCancelGeolocationPermission = procedure(Sender: TObject; const browser: ICefBrowser;
     const requestingUrl: ustring; requestId: Integer) of object;
 
@@ -133,6 +133,11 @@ type
     const buffer: Pointer; width, height: Integer) of Object;
   TOnCursorChange = procedure(Sender: TObject; const browser: ICefBrowser;
     cursor: TCefCursorHandle) of Object;
+  TOnStartDragging = procedure(Sender: TObject; const browser: ICefBrowser;
+    const dragData: ICefDragData; allowedOps: TCefDragOperations; x,
+   y: Integer; out Result: Boolean) of Object;
+  TOnUpdateDragCursor = procedure(Sender: TObject; const browser: ICefBrowser;
+    operation: TCefDragOperation) of Object;
   TOnScrollOffsetChanged = procedure(Sender: TObject; const browser: ICefBrowser) of Object;
 
   TOnDragEnter = procedure(Sender: TObject; const browser: ICefBrowser;
@@ -140,6 +145,7 @@ type
 
   TChromiumOptions = class(TPersistent)
   private
+    FWindowlessFrameRate: Integer;
     FJavascript: TCefState;
     FJavascriptOpenWindows: TCefState;
     FJavascriptCloseWindows: TCefState;
@@ -159,8 +165,9 @@ type
     FDatabases: TCefState;
     FApplicationCache: TCefState;
     FWebgl: TCefState;
-    FAcceleratedCompositing: TCefState;
     FBackgroundColor: TCefColor;
+  public
+    constructor Create; virtual;
   published
     property Javascript: TCefState read FJavascript write FJavascript default STATE_DEFAULT;
     property JavascriptOpenWindows: TCefState read FJavascriptOpenWindows write FJavascriptOpenWindows default STATE_DEFAULT;
@@ -181,8 +188,8 @@ type
     property Databases: TCefState read FDatabases write FDatabases default STATE_DEFAULT;
     property ApplicationCache: TCefState read FApplicationCache write FApplicationCache default STATE_DEFAULT;
     property Webgl: TCefState read FWebgl write FWebgl default STATE_DEFAULT;
-    property AcceleratedCompositing: TCefState read FAcceleratedCompositing write FAcceleratedCompositing default STATE_DEFAULT;
     property BackgroundColor: TCefColor read FBackgroundColor write FBackgroundColor default 0;
+    property WindowlessFrameRate: Integer read FWindowlessFrameRate write FWindowlessFrameRate default 30;
   end;
 
   TChromiumFontOptions = class(TPersistent)
@@ -248,8 +255,8 @@ type
     procedure doOnStatusMessage(const browser: ICefBrowser; const value: ustring);
     function doOnConsoleMessage(const browser: ICefBrowser; const message, source: ustring; line: Integer): Boolean;
 
-    procedure doOnRequestGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback);
+    function doOnRequestGeolocationPermission(const browser: ICefBrowser;
+      const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback): Boolean;
     procedure doOnCancelGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer);
 
@@ -312,6 +319,9 @@ type
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
     procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
+    function doOnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
+      allowedOps: TCefDragOperations; x, y: Integer): Boolean;
+    procedure doOnUpdateDragCursor(const browser: ICefBrowser; operation: TCefDragOperation);
     procedure doOnScrollOffsetChanged(const browser: ICefBrowser);
 
     function doOnDragEnter(const browser: ICefBrowser; const dragData: ICefDragData;
@@ -452,8 +462,8 @@ type
   private
     FEvent: IChromiumEvents;
   protected
-    procedure OnRequestGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback); override;
+    function OnRequestGeolocationPermission(const browser: ICefBrowser;
+      const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback): Boolean; override;
     procedure OnCancelGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer); override;
   public
@@ -535,6 +545,10 @@ type
     procedure OnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle); override;
     function GetScreenInfo(const browser: ICefBrowser;
       screenInfo: PCefScreenInfo): Boolean; override;
+    function OnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
+      allowedOps: TCefDragOperations; x, y: Integer): Boolean; override;
+    procedure OnUpdateDragCursor(const browser: ICefBrowser;
+      operation: TCefDragOperation); override;
     procedure OnScrollOffsetChanged(const browser: ICefBrowser); override;
   public
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
@@ -862,11 +876,11 @@ begin
   FEvent.doOnCancelGeolocationPermission(browser, requestingUrl, requestId);
 end;
 
-procedure TCustomGeolocationHandler.OnRequestGeolocationPermission(
+function TCustomGeolocationHandler.OnRequestGeolocationPermission(
   const browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer;
-  const callback: ICefGeolocationCallback);
+  const callback: ICefGeolocationCallback): Boolean;
 begin
-  FEvent.doOnRequestGeolocationPermission(browser, requestingUrl, requestId, callback);
+  Result := FEvent.doOnRequestGeolocationPermission(browser, requestingUrl, requestId, callback);
 end;
 
 { TCustomJsDialogHandler }
@@ -1099,6 +1113,19 @@ begin
   FEvent.doOnScrollOffsetChanged(browser);
 end;
 
+function TCustomRenderHandler.OnStartDragging(const browser: ICefBrowser;
+  const dragData: ICefDragData; allowedOps: TCefDragOperations; x,
+  y: Integer): Boolean;
+begin
+  Result := FEvent.doOnStartDragging(browser, dragData, allowedOps, x, y);
+end;
+
+procedure TCustomRenderHandler.OnUpdateDragCursor(const browser: ICefBrowser;
+  operation: TCefDragOperation);
+begin
+  FEvent.doOnUpdateDragCursor(browser, operation);
+end;
+
 { TCustomDragHandler }
 
 constructor TCustomDragHandler.Create(const events: IChromiumEvents);
@@ -1111,6 +1138,33 @@ function TCustomDragHandler.OnDragEnter(const browser: ICefBrowser;
   const dragData: ICefDragData; mask: TCefDragOperations): Boolean;
 begin
   Result := FEvent.doOnDragEnter(browser, dragData, mask);
+end;
+
+{ TChromiumOptions }
+
+constructor TChromiumOptions.Create;
+begin
+  FWindowlessFrameRate := 30;
+  FJavascript := STATE_DEFAULT;
+  FJavascriptOpenWindows := STATE_DEFAULT;
+  FJavascriptCloseWindows := STATE_DEFAULT;
+  FJavascriptAccessClipboard := STATE_DEFAULT;
+  FJavascriptDomPaste := STATE_DEFAULT;
+  FCaretBrowsing := STATE_DEFAULT;
+  FJava := STATE_DEFAULT;
+  FPlugins := STATE_DEFAULT;
+  FUniversalAccessFromFileUrls := STATE_DEFAULT;
+  FFileAccessFromFileUrls := STATE_DEFAULT;
+  FWebSecurity := STATE_DEFAULT;
+  FImageLoading := STATE_DEFAULT;
+  FImageShrinkStandaloneToFit := STATE_DEFAULT;
+  FTextAreaResize := STATE_DEFAULT;
+  FTabToLinks := STATE_DEFAULT;
+  FLocalStorage := STATE_DEFAULT;
+  FDatabases := STATE_DEFAULT;
+  FApplicationCache := STATE_DEFAULT;
+  FWebgl := STATE_DEFAULT;
+  FBackgroundColor := 0;
 end;
 
 end.

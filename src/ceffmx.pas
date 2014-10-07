@@ -149,8 +149,8 @@ type
     procedure doOnDownloadUpdated(const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
         const callback: ICefDownloadItemCallback); virtual;
 
-    procedure doOnRequestGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback); virtual;
+    function doOnRequestGeolocationPermission(const browser: ICefBrowser;
+      const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback): Boolean; virtual;
     procedure doOnCancelGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer); virtual;
 
@@ -211,6 +211,9 @@ type
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
     procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
+    function doOnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
+      allowedOps: TCefDragOperations; x, y: Integer): Boolean;
+    procedure doOnUpdateDragCursor(const browser: ICefBrowser; operation: TCefDragOperation);
     procedure doOnScrollOffsetChanged(const browser: ICefBrowser);
 
     function doOnDragEnter(const browser: ICefBrowser; const dragData: ICefDragData;
@@ -424,7 +427,7 @@ begin
   begin
     FillChar(info, SizeOf(info), 0);
 {$ifdef MSWINDOWS}
-    info.window_rendering_disabled := True;
+    info.windowless_rendering_enabled := Ord(True);
 {$endif}
 {$ifdef MACOSX}
     info.m_bHidden := 1;
@@ -442,8 +445,6 @@ end;
 
 destructor TCustomChromiumFMX.Destroy;
 begin
-  if FBrowser <> nil then
-    FBrowser.Host.ParentWindowWillClose;
   if FHandler <> nil then
     (FHandler as ICefClientHandler).Disconnect;
   FHandler := nil;
@@ -878,12 +879,13 @@ begin
     FOnRenderProcessTerminated(Self, browser, status);
 end;
 
-procedure TCustomChromiumFMX.doOnRequestGeolocationPermission(
+function TCustomChromiumFMX.doOnRequestGeolocationPermission(
   const browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer;
-  const callback: ICefGeolocationCallback);
+  const callback: ICefGeolocationCallback): Boolean;
 begin
+  Result := False;
   if Assigned(FOnRequestGeolocationPermission) then
-    FOnRequestGeolocationPermission(Self, browser, requestingUrl, requestId, callback);
+    FOnRequestGeolocationPermission(Self, browser, requestingUrl, requestId, callback, Result);
 end;
 
 procedure TCustomChromiumFMX.doOnResetDialogState(const browser: ICefBrowser);
@@ -920,6 +922,13 @@ begin
     FOnSetFocus(Self, browser, source, Result);
 end;
 
+function TCustomChromiumFMX.doOnStartDragging(const browser: ICefBrowser;
+  const dragData: ICefDragData; allowedOps: TCefDragOperations; x,
+  y: Integer): Boolean;
+begin
+  Result := False;
+end;
+
 procedure TCustomChromiumFMX.doOnStatusMessage(const browser: ICefBrowser;
   const value: ustring);
 begin
@@ -949,9 +958,17 @@ begin
     FOnTooltip(Self, browser, text, Result);
 end;
 
+procedure TCustomChromiumFMX.doOnUpdateDragCursor(const browser: ICefBrowser;
+  operation: TCefDragOperation);
+begin
+
+end;
+
 procedure TCustomChromiumFMX.GetSettings(var settings: TCefBrowserSettings);
 begin
   Assert(settings.size >= SizeOf(settings));
+  settings.windowless_frame_rate := FOptions.WindowlessFrameRate;
+
   settings.standard_font_family := CefString(FFontOptions.StandardFontFamily);
   settings.fixed_font_family := CefString(FFontOptions.FixedFontFamily);
   settings.serif_font_family := CefString(FFontOptions.SerifFontFamily);
@@ -984,7 +1001,6 @@ begin
   settings.databases := FOptions.Databases;
   settings.application_cache := FOptions.ApplicationCache;
   settings.webgl := FOptions.Webgl;
-  settings.accelerated_compositing := FOptions.AcceleratedCompositing;
   settings.background_color := FOptions.BackgroundColor;
 end;
 
@@ -1126,7 +1142,6 @@ procedure TCustomChromiumFMX.ReCreateBrowser(const url: string);
 begin
   if (FBrowser <> nil) then
   begin
-    FBrowser.Host.ParentWindowWillClose;
     FBrowser := nil;
     CreateBrowser;
     Load(url);
