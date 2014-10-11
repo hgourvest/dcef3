@@ -445,6 +445,12 @@ end;
 
 destructor TCustomChromiumFMX.Destroy;
 begin
+  if FBrowser <> nil then
+  begin
+    FBrowser.StopLoad;
+    FBrowser.Host.CloseBrowser(False);
+  end;
+
   if FHandler <> nil then
     (FHandler as ICefClientHandler).Disconnect;
   FHandler := nil;
@@ -612,7 +618,7 @@ end;
 procedure TCustomChromiumFMX.doOnCursorChange(const browser: ICefBrowser;
   cursor: TCefCursorHandle);
 begin
-  if browser.IsSame(Self.Browser) then
+  if not (csDestroying in ComponentState) and browser.IsSame(Self.Browser) then
   case cursor of
     65541: Self.Cursor := crArrow;
     65543: Self.Cursor := crIBeam;
@@ -693,7 +699,9 @@ end;
 function TCustomChromiumFMX.doOnGetRootScreenRect(const browser: ICefBrowser;
   rect: PCefRect): Boolean;
 begin
-  if Self.Browser.IsSame(browser) and (FBuffer <> nil) then
+  if not (csDestroying in ComponentState)
+    and Self.Browser.IsSame(browser)
+    and (FBuffer <> nil) then
   begin
     rect.x := 0;
     rect.y := 0;
@@ -719,7 +727,9 @@ end;
 function TCustomChromiumFMX.doOnGetViewRect(const browser: ICefBrowser;
   rect: PCefRect): Boolean;
 begin
-  if Self.Browser.IsSame(browser) and (FBuffer <> nil) then
+  if not (csDestroying in ComponentState)
+    and Self.Browser.IsSame(browser)
+    and (FBuffer <> nil) then
   begin
     rect.x := 0;
     rect.y := 0;
@@ -792,6 +802,8 @@ var
   src, dst: PByte;
   offset, i, {j,} w, c: Integer;
 begin
+  if csDestroying in ComponentState then Exit;
+
   if (FBuffer <> nil) and (FBuffer.Width = Width) and (FBuffer.Height = Height) then
 //    begin
 //      Move(buffer^, StartLine^, vw * vh * 4);

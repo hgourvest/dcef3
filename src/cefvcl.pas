@@ -1411,6 +1411,18 @@ end;
 
 destructor TCustomChromiumOSR.Destroy;
 begin
+  FOnGetRootScreenRect := nil;
+  FOnGetViewRect := nil;
+  FOnGetScreenPoint := nil;
+  FOnGetScreenInfo := nil;
+  FOnPopupShow := nil;
+  FOnPopupSize := nil;
+  FOnPaint := nil;
+  FOnCursorChange := nil;
+  FOnStartDragging := nil;
+  FOnUpdateDragCursor := nil;
+  FOnScrollOffsetChanged := nil;
+
   if FBrowser <> nil then
   begin
     FBrowser.StopLoad;
