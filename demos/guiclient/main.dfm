@@ -36,7 +36,6 @@ object MainForm: TMainForm
     OnDownloadUpdated = crmDownloadUpdated
     OnBeforePopup = crmBeforePopup
     OnBeforeResourceLoad = crmBeforeResourceLoad
-    ExplicitHeight = 404
   end
   object StatusBar: TStatusBar
     Left = 0

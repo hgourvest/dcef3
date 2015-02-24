@@ -132,7 +132,8 @@ type
     kind: TCefPaintElementType; dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
     const buffer: Pointer; width, height: Integer) of Object;
   TOnCursorChange = procedure(Sender: TObject; const browser: ICefBrowser;
-    cursor: TCefCursorHandle) of Object;
+    cursor: TCefCursorHandle; cursorType: TCefCursorType;
+    const customCursorInfo: PCefCursorInfo) of Object;
   TOnStartDragging = procedure(Sender: TObject; const browser: ICefBrowser;
     const dragData: ICefDragData; allowedOps: TCefDragOperations; x,
    y: Integer; out Result: Boolean) of Object;
@@ -318,7 +319,8 @@ type
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
-    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
+    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
     function doOnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
       allowedOps: TCefDragOperations; x, y: Integer): Boolean;
     procedure doOnUpdateDragCursor(const browser: ICefBrowser; operation: TCefDragOperation);
@@ -542,7 +544,8 @@ type
     procedure OnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer); override;
-    procedure OnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle); override;
+    procedure OnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo); override;
     function GetScreenInfo(const browser: ICefBrowser;
       screenInfo: PCefScreenInfo): Boolean; override;
     function OnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
@@ -1083,9 +1086,10 @@ begin
 end;
 
 procedure TCustomRenderHandler.OnCursorChange(const browser: ICefBrowser;
-  cursor: TCefCursorHandle);
+  cursor: TCefCursorHandle; cursorType: TCefCursorType;
+  const customCursorInfo: PCefCursorInfo);
 begin
-  FEvent.doOnCursorChange(browser, cursor);
+  FEvent.doOnCursorChange(browser, cursor, cursorType, customCursorInfo);
 end;
 
 procedure TCustomRenderHandler.OnPaint(const browser: ICefBrowser;

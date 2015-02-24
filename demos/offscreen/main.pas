@@ -19,14 +19,17 @@ type
     procedure PaintBoxMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure AppEventsMessage(var Msg: tagMSG; var Handled: Boolean);
-    procedure chrmosrCursorChange(Sender: TObject; const browser: ICefBrowser;
-      cursor: HICON);
     procedure chrmosrPaint(Sender: TObject; const browser: ICefBrowser;
       kind: TCefPaintElementType; dirtyRectsCount: NativeUInt;
       const dirtyRects: PCefRectArray; const buffer: Pointer; width,
       height: Integer);
     procedure chrmosrGetRootScreenRect(Sender: TObject;
       const browser: ICefBrowser; rect: PCefRect; out Result: Boolean);
+    procedure chrmosrCursorChange(Sender: TObject; const browser: ICefBrowser;
+      cursor: HICON; cursorType: TCefCursorType;
+      const customCursorInfo: PCefCursorInfo);
+    procedure PaintBoxMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   end;
 
 var
@@ -55,9 +58,38 @@ begin
 end;
 
 procedure TMainform.chrmosrCursorChange(Sender: TObject;
-  const browser: ICefBrowser; cursor: HICON);
+  const browser: ICefBrowser; cursor: HICON; cursorType: TCefCursorType;
+  const customCursorInfo: PCefCursorInfo);
 begin
-  SetCursor(cursor)
+  case cursorType of
+    CT_POINTER: PaintBox.Cursor := crArrow;
+    CT_CROSS: PaintBox.Cursor:= crCross;
+    CT_HAND: PaintBox.Cursor := crHandPoint;
+    CT_IBEAM: PaintBox.Cursor := crIBeam;
+    CT_WAIT: PaintBox.Cursor := crHourGlass;
+    CT_HELP: PaintBox.Cursor := crHelp;
+    CT_EASTRESIZE: PaintBox.Cursor := crSizeWE;
+    CT_NORTHRESIZE: PaintBox.Cursor := crSizeNS;
+    CT_NORTHEASTRESIZE: PaintBox.Cursor:= crSizeNESW;
+    CT_NORTHWESTRESIZE: PaintBox.Cursor:= crSizeNWSE;
+    CT_SOUTHRESIZE: PaintBox.Cursor:= crSizeNS;
+    CT_SOUTHEASTRESIZE: PaintBox.Cursor:= crSizeNWSE;
+    CT_SOUTHWESTRESIZE: PaintBox.Cursor:= crSizeNESW;
+    CT_WESTRESIZE: PaintBox.Cursor := crSizeWE;
+    CT_NORTHSOUTHRESIZE: PaintBox.Cursor:= crSizeNS;
+    CT_EASTWESTRESIZE: PaintBox.Cursor := crSizeWE;
+    CT_NORTHEASTSOUTHWESTRESIZE: PaintBox.Cursor:= crSizeNESW;
+    CT_NORTHWESTSOUTHEASTRESIZE: PaintBox.Cursor:= crSizeNWSE;
+    CT_COLUMNRESIZE: PaintBox.Cursor:= crHSplit;
+    CT_ROWRESIZE: PaintBox.Cursor:= crVSplit;
+    CT_MOVE: PaintBox.Cursor := crSizeAll;
+    CT_PROGRESS: PaintBox.Cursor := crAppStart;
+    CT_NODROP: PaintBox.Cursor:= crNo;
+    CT_NONE: PaintBox.Cursor:= crNone;
+    CT_NOTALLOWED: PaintBox.Cursor:= crNo;
+  else
+    PaintBox.Cursor := crArrow;
+  end;
 end;
 
 procedure TMainform.chrmosrGetRootScreenRect(Sender: TObject;
@@ -161,6 +193,17 @@ begin
   event.y := Y;
   event.modifiers := getModifiers(Shift);
   chrmosr.Browser.Host.SendMouseClickEvent(@event, GetButton(Button), True, 1);
+end;
+
+procedure TMainform.PaintBoxMouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+var
+  event: TCefMouseEvent;
+begin
+  event.x := MousePos.X;
+  event.y := MousePos.Y;
+  event.modifiers := getModifiers(Shift);
+  chrmosr.Browser.Host.SendMouseWheelEvent(@event, 0, WheelDelta);
 end;
 
 procedure TMainform.PaintBoxResize(Sender: TObject);

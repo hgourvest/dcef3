@@ -210,7 +210,8 @@ type
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
-    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
+    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
     function doOnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
       allowedOps: TCefDragOperations; x, y: Integer): Boolean;
     procedure doOnUpdateDragCursor(const browser: ICefBrowser; operation: TCefDragOperation);
@@ -448,7 +449,7 @@ begin
   if FBrowser <> nil then
   begin
     FBrowser.StopLoad;
-    FBrowser.Host.CloseBrowser(False);
+    FBrowser.Host.CloseBrowser(True);
   end;
 
   if FHandler <> nil then
@@ -616,25 +617,38 @@ begin
 end;
 
 procedure TCustomChromiumFMX.doOnCursorChange(const browser: ICefBrowser;
-  cursor: TCefCursorHandle);
+  cursor: TCefCursorHandle; cursorType: TCefCursorType;
+  const customCursorInfo: PCefCursorInfo);
 begin
   if not (csDestroying in ComponentState) and browser.IsSame(Self.Browser) then
-  case cursor of
-    65541: Self.Cursor := crArrow;
-    65543: Self.Cursor := crIBeam;
-    65545: Self.Cursor := crHourGlass;
-    65547: Self.Cursor := crCross;
-    65551: Self.Cursor := crSizeNWSE;
-    65553: Self.Cursor := crSizeNESW;
-    65555: Self.Cursor := crSizeWE;
-    65557: Self.Cursor := crSizeNS;
-    65559: Self.Cursor := crSizeAll;
-    65561: Self.Cursor := crNo;
-    65563: Self.Cursor := crAppStart;
-    65565: Self.Cursor := crHelp;
-    65569: Self.Cursor := crHandPoint;
+  case cursorType of
+    CT_POINTER: Self.Cursor := crArrow;
+    CT_CROSS: Self.Cursor:= crCross;
+    CT_HAND: Self.Cursor := crHandPoint;
+    CT_IBEAM: Self.Cursor := crIBeam;
+    CT_WAIT: Self.Cursor := crHourGlass;
+    CT_HELP: Self.Cursor := crHelp;
+    CT_EASTRESIZE: Self.Cursor := crSizeWE;
+    CT_NORTHRESIZE: Self.Cursor := crSizeNS;
+    CT_NORTHEASTRESIZE: Self.Cursor:= crSizeNESW;
+    CT_NORTHWESTRESIZE: Self.Cursor:= crSizeNWSE;
+    CT_SOUTHRESIZE: Self.Cursor:= crSizeNS;
+    CT_SOUTHEASTRESIZE: Self.Cursor:= crSizeNWSE;
+    CT_SOUTHWESTRESIZE: Self.Cursor:= crSizeNESW;
+    CT_WESTRESIZE: Self.Cursor := crSizeWE;
+    CT_NORTHSOUTHRESIZE: Self.Cursor:= crSizeNS;
+    CT_EASTWESTRESIZE: Self.Cursor := crSizeWE;
+    CT_NORTHEASTSOUTHWESTRESIZE: Self.Cursor:= crSizeNESW;
+    CT_NORTHWESTSOUTHEASTRESIZE: Self.Cursor:= crSizeNWSE;
+    CT_COLUMNRESIZE: Self.Cursor:= crHSplit;
+    CT_ROWRESIZE: Self.Cursor:= crVSplit;
+    CT_MOVE: Self.Cursor := crSizeAll;
+    CT_PROGRESS: Self.Cursor := crAppStart;
+    CT_NODROP: Self.Cursor:= crNo;
+    CT_NONE: Self.Cursor:= crNone;
+    CT_NOTALLOWED: Self.Cursor:= crNo;
   else
-    Self.Cursor := crDefault;
+    Self.Cursor := crArrow;
   end;
 end;
 
@@ -1170,10 +1184,10 @@ begin
     brws := FBrowser;
     if (brws <> nil) then
     begin
-      brws.Host.WasResized;
       if FBuffer <> nil then
         FBuffer.Free;
       FBuffer := TBitmap.Create(Trunc(Width), Trunc(Height));
+      brws.Host.WasResized;
     end;
   end;
 end;

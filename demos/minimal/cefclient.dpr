@@ -89,11 +89,7 @@ begin
         result := DefWindowProc(Wnd, message, wParam, lParam);
       end;
     WM_CLOSE:
-      begin
-        if brows <> nil then
-          brows.Host.ParentWindowWillClose;
-        result := DefWindowProc(Wnd, message, wParam, lParam);
-      end
+      result := DefWindowProc(Wnd, message, wParam, lParam);
   else
     result := DefWindowProc(Wnd, message, wParam, lParam);
   end;
@@ -152,7 +148,7 @@ begin
 
     Window := CreateWindow(
       'cefapp',
-      'CEF Application',
+      'CEF 3 Application',
       WS_OVERLAPPEDWINDOW or WS_CLIPCHILDREN,
       Integer(CW_USEDEFAULT),
       Integer(CW_USEDEFAULT),

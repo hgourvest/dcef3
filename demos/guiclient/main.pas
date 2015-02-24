@@ -423,25 +423,25 @@ function TCustomRenderProcessHandler.OnProcessMessageReceived(
   const browser: ICefBrowser; sourceProcess: TCefProcessId;
   const message: ICefProcessMessage): Boolean;
 begin
-{$IFDEF DELPHI14_UP}
-  if (message.Name = 'visitdom') then
-    begin
-      browser.MainFrame.VisitDomProc(
-        procedure(const doc: ICefDomDocument) begin
-          doc.Body.AddEventListenerProc('mouseover', True,
-            procedure (const event: ICefDomEvent)
-            var
-              msg: ICefProcessMessage;
-            begin
-              msg := TCefProcessMessageRef.New('mouseover');
-              msg.ArgumentList.SetString(0, getpath(event.Target));
-              browser.SendProcessMessage(PID_BROWSER, msg);
-            end)
-        end);
-        Result := True;
-    end
-  else
-{$ENDIF}
+//{$IFDEF DELPHI14_UP}
+//  if (message.Name = 'visitdom') then
+//    begin
+//      browser.MainFrame.VisitDomProc(
+//        procedure(const doc: ICefDomDocument) begin
+//          doc.Body.AddEventListenerProc('mouseover', True,
+//            procedure (const event: ICefDomEvent)
+//            var
+//              msg: ICefProcessMessage;
+//            begin
+//              msg := TCefProcessMessageRef.New('mouseover');
+//              msg.ArgumentList.SetString(0, getpath(event.Target));
+//              browser.SendProcessMessage(PID_BROWSER, msg);
+//            end)
+//        end);
+//        Result := True;
+//    end
+//  else
+//{$ENDIF}
     Result := False;
 end;
 

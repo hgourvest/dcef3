@@ -1,6 +1,7 @@
 object Mainform: TMainform
   Left = 0
   Top = 0
+  ActiveControl = PaintBox
   Caption = 'Mainform'
   ClientHeight = 493
   ClientWidth = 753
@@ -25,6 +26,7 @@ object Mainform: TMainform
     OnMouseDown = PaintBoxMouseDown
     OnMouseMove = PaintBoxMouseMove
     OnMouseUp = PaintBoxMouseUp
+    OnMouseWheel = PaintBoxMouseWheel
     OnResize = PaintBoxResize
   end
   object chrmosr: TChromiumOSR

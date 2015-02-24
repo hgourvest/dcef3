@@ -202,7 +202,8 @@ type
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
-    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
+    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
     function doOnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
       allowedOps: TCefDragOperations; x, y: Integer): Boolean;
     procedure doOnUpdateDragCursor(const browser: ICefBrowser; operation: TCefDragOperation);
@@ -273,7 +274,7 @@ type
     destructor Destroy; override;
     procedure Load(const url: ustring);
     procedure ReCreateBrowser(const url: string);
-    procedure ShowDevTools;
+    procedure ShowDevTools(inspectElementAt: PCefPoint = nil);
   end;
 
   TCustomChromiumOSR = class(TComponent, IChromiumEvents)
@@ -458,7 +459,8 @@ type
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
-    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
+    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
     function doOnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
       allowedOps: TCefDragOperations; x, y: Integer): Boolean;
     procedure doOnUpdateDragCursor(const browser: ICefBrowser; operation: TCefDragOperation);
@@ -915,7 +917,7 @@ begin
   end;
 end;
 
-procedure TCustomChromium.ShowDevTools;
+procedure TCustomChromium.ShowDevTools(inspectElementAt: PCefPoint);
 var
   info: TCefWindowInfo;
   setting: TCefBrowserSettings;
@@ -931,7 +933,7 @@ begin
 
   FillChar(setting, SizeOf(setting), 0);
   setting.size := SizeOf(setting);
-  FBrowser.Host.ShowDevTools(@info, FHandler, @setting);
+  FBrowser.Host.ShowDevTools(@info, FHandler, @setting, inspectElementAt);
 end;
 
 procedure TCustomChromium.WndProc(var Message: TMessage);
@@ -1077,7 +1079,8 @@ begin
 end;
 
 procedure TCustomChromium.doOnCursorChange(const browser: ICefBrowser;
-  cursor: TCefCursorHandle);
+  cursor: TCefCursorHandle; cursorType: TCefCursorType;
+  const customCursorInfo: PCefCursorInfo);
 begin
 
 end;
@@ -1637,10 +1640,10 @@ begin
 end;
 
 procedure TCustomChromiumOSR.doOnCursorChange(const browser: ICefBrowser;
-  cursor: TCefCursorHandle);
+  cursor: TCefCursorHandle; cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
 begin
   if Assigned(FOnCursorChange) then
-    FOnCursorChange(Self, browser, cursor);
+    FOnCursorChange(Self, browser, cursor, cursorType, customCursorInfo);
 end;
 
 procedure TCustomChromiumOSR.doOnDialogClosed(const browser: ICefBrowser);
