@@ -33,6 +33,18 @@ uses
 {$endif};
 
 type
+  TChromiumDevTools = class(TWinControl)
+  protected
+    procedure WndProc(var Message: TMessage); override;
+    procedure Resize; override;
+  public
+    procedure ShowDevTools(const browser: ICefBrowser; inspectElementAt: PCefPoint = nil);
+    procedure CloseDevTools(const browser: ICefBrowser);
+  published
+    property Align;
+    property Visible;
+  end;
+
   TCustomChromium = class(TWinControl, IChromiumEvents)
   private
     FHandler: ICefClient;
@@ -275,6 +287,7 @@ type
     procedure Load(const url: ustring);
     procedure ReCreateBrowser(const url: string);
     procedure ShowDevTools(inspectElementAt: PCefPoint = nil);
+    procedure CloseDevTools;
   end;
 
   TCustomChromiumOSR = class(TComponent, IChromiumEvents)
@@ -746,6 +759,12 @@ end;
 
 { TCustomChromium }
 
+procedure TCustomChromium.CloseDevTools;
+begin
+  if (FBrowser <> nil) then
+    FBrowser.Host.CloseDevTools;
+end;
+
 constructor TCustomChromium.Create(AOwner: TComponent);
 begin
   inherited;
@@ -922,6 +941,8 @@ var
   info: TCefWindowInfo;
   setting: TCefBrowserSettings;
 begin
+  if (FBrowser = nil) then Exit;
+
   FillChar(info, SizeOf(info), 0);
   info.style := WS_OVERLAPPEDWINDOW or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or WS_VISIBLE;
   info.parent_window := FBrowser.Host.WindowHandle;
@@ -933,7 +954,7 @@ begin
 
   FillChar(setting, SizeOf(setting), 0);
   setting.size := SizeOf(setting);
-  FBrowser.Host.ShowDevTools(@info, FHandler, @setting, inspectElementAt);
+  FBrowser.Host.ShowDevTools(@info, TCefClientOwn.Create as ICefClient, @setting, inspectElementAt);
 end;
 
 procedure TCustomChromium.WndProc(var Message: TMessage);
@@ -1948,5 +1969,92 @@ begin
     FOnRunModal(Self, browser, Result);
 end;
 
+
+{ TChromiumDevTools }
+
+procedure TChromiumDevTools.CloseDevTools(const browser: ICefBrowser);
+begin
+  if browser <> nil then
+  begin
+    windows.SetParent(GetWindow(Handle, GW_CHILD), 0);
+    browser.Host.CloseDevTools;
+  end;
+end;
+
+procedure TChromiumDevTools.Resize;
+var
+  rect: TRect;
+  hdwp: THandle;
+  hndl: THandle;
+begin
+  inherited;
+  hndl:= GetWindow(Handle, GW_CHILD);
+  if hndl = 0 then Exit;
+
+  rect:= GetClientRect;
+  hdwp := BeginDeferWindowPos(1);
+  try
+    hdwp := DeferWindowPos(hdwp, hndl, 0,
+      rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+      SWP_NOZORDER);
+  finally
+    EndDeferWindowPos(hdwp);
+  end;
+end;
+
+procedure TChromiumDevTools.ShowDevTools(const browser: ICefBrowser;
+  inspectElementAt: PCefPoint);
+var
+  info: TCefWindowInfo;
+  setting: TCefBrowserSettings;
+  rect: TRect;
+begin
+  if browser = nil then Exit;
+
+  FillChar(info, SizeOf(info), 0);
+
+  info.parent_window := Handle;
+  info.style := WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or WS_TABSTOP;
+  Rect := GetClientRect;
+  info.x := rect.left;
+  info.y := rect.top;
+  info.Width := rect.right - rect.left;
+  info.Height := rect.bottom - rect.top;
+  info.window_name := CefString('DevTools');
+
+  FillChar(setting, SizeOf(setting), 0);
+  setting.size := SizeOf(setting);
+
+  Browser.Host.ShowDevTools(@info, TCefClientOwn.Create as ICefClient, @setting, inspectElementAt);
+end;
+
+procedure TChromiumDevTools.WndProc(var Message: TMessage);
+var
+  hndl: THandle;
+begin
+  case Message.Msg of
+    WM_SETFOCUS:
+      begin
+        hndl := GetWindow(Handle, GW_CHILD);
+        if hndl <> 0 then
+          PostMessage(hndl, WM_SETFOCUS, Message.WParam, 0);
+        inherited WndProc(Message);
+      end;
+    WM_ERASEBKGND:
+      begin
+        hndl := GetWindow(Handle, GW_CHILD);
+        if (csDesigning in ComponentState) or (hndl = 0) then
+          inherited WndProc(Message);
+      end;
+    CM_WANTSPECIALKEY:
+      if not (TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN]) then
+        Message.Result := 1 else
+        inherited WndProc(Message);
+    WM_GETDLGCODE:
+      Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS;
+  else
+    inherited WndProc(Message);
+  end;
+end;
 
 end.

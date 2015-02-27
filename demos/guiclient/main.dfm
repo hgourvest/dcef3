@@ -18,11 +18,22 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
+  object Splitter: TSplitter
+    Left = 0
+    Top = 430
+    Width = 864
+    Height = 3
+    Cursor = crVSplit
+    Align = alBottom
+    Visible = False
+    ExplicitTop = 25
+    ExplicitWidth = 463
+  end
   object crm: TChromium
     Left = 0
     Top = 25
     Width = 864
-    Height = 608
+    Height = 405
     Align = alClient
     DefaultUrl = 'http://www.google.com'
     TabOrder = 0
@@ -37,9 +48,17 @@ object MainForm: TMainForm
     OnBeforePopup = crmBeforePopup
     OnBeforeResourceLoad = crmBeforeResourceLoad
   end
+  object DevTools: TChromiumDevTools
+    Left = 0
+    Top = 452
+    Width = 864
+    Height = 200
+    Align = alBottom
+    Visible = False
+  end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 633
+    Top = 433
     Width = 864
     Height = 19
     Panels = <>

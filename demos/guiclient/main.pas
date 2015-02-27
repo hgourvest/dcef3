@@ -11,6 +11,8 @@ uses
 type
   TMainForm = class(TForm)
     crm: TChromium;
+    Splitter: TSplitter;
+    DevTools: TChromiumDevTools;
     StatusBar: TStatusBar;
     ActionList: TActionList;
     actPrev: TAction;
@@ -135,12 +137,16 @@ implementation
 
 procedure TMainForm.actCloseDevToolsExecute(Sender: TObject);
 begin
-  crm.Browser.Host.CloseDevTools;
+  DevTools.CloseDevTools(crm.Browser);
+  DevTools.Visible := False;
+  Splitter.Visible := False;
 end;
 
 procedure TMainForm.actDevToolExecute(Sender: TObject);
 begin
-  crm.ShowDevTools;
+  Splitter.Visible := True;
+  DevTools.Visible := True;
+  DevTools.ShowDevTools(crm.Browser);
 end;
 
 procedure TMainForm.actDocExecute(Sender: TObject);
@@ -175,7 +181,7 @@ begin
   source := StringReplace(source, '<', '&lt;', [rfReplaceAll]);
   source := StringReplace(source, '>', '&gt;', [rfReplaceAll]);
   source := '<html><body>Source:<pre>' + source + '</pre></body></html>';
-  MainForm.crm.Browser.MainFrame.LoadString(source, '');
+  MainForm.crm.Browser.MainFrame.LoadString(source, 'source://html');
 end;
 
 procedure TMainForm.actGetSourceExecute(Sender: TObject);
@@ -191,7 +197,7 @@ begin
   source := StringReplace(source, '<', '&lt;', [rfReplaceAll]);
   source := StringReplace(source, '>', '&gt;', [rfReplaceAll]);
   source := '<html><body>Text:<pre>' + source + '</pre></body></html>';
-  MainForm.crm.Browser.MainFrame.LoadString(source, '');
+  MainForm.crm.Browser.MainFrame.LoadString(source, 'source://text');
 end;
 
 procedure TMainForm.actGetTextExecute(Sender: TObject);

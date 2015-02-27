@@ -19,7 +19,7 @@ uses
 procedure Register;
 begin
   RegisterComponents('Chromium', [
-    TChromium, TChromiumOSR
+    TChromiumDevTools, TChromium, TChromiumOSR
 {$ifdef DELPHI16_UP}
 {$ifndef DELPHI17_UP}
     ,TChromiumFMX
