@@ -377,7 +377,7 @@ begin
   CefSingleProcess := False;
   if not CefLoadLibDefault then Exit;
 
-  CefRegisterSchemeHandlerFactory('local', '', False, TFileScheme);
+  CefRegisterSchemeHandlerFactory('local', '', TFileScheme);
 
   try
     wndClass.style         := CS_HREDRAW or CS_VREDRAW;
