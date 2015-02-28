@@ -11,7 +11,6 @@ uses
 type
   TMainForm = class(TForm)
     crm: TChromium;
-    Splitter: TSplitter;
     DevTools: TChromiumDevTools;
     StatusBar: TStatusBar;
     ActionList: TActionList;
@@ -56,9 +55,8 @@ type
     actGroup: TAction;
     Googlegroup1: TMenuItem;
     actFileScheme: TAction;
-    actCloseDevTools: TAction;
-    CloseDevTools1: TMenuItem;
     actPrint: TAction;
+    Splitter: TSplitter;
     procedure edAddressKeyPress(Sender: TObject; var Key: Char);
     procedure actPrevExecute(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
@@ -109,8 +107,13 @@ type
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var client: ICefClient; var settings: TCefBrowserSettings;
       var noJavascriptAccess: Boolean; out Result: Boolean);
-    procedure actCloseDevToolsExecute(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
+    procedure crmBeforeContextMenu(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; const params: ICefContextMenuParams;
+      const model: ICefMenuModel);
+    procedure crmContextMenuCommand(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; const params: ICefContextMenuParams;
+      commandId: Integer; eventFlags: TCefEventFlags; out Result: Boolean);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -133,20 +136,24 @@ var
 
 implementation
 
-{$R *.dfm}
+const
+  CUSTOMMENUCOMMAND_INSPECTELEMENT = 7241221;
 
-procedure TMainForm.actCloseDevToolsExecute(Sender: TObject);
-begin
-  DevTools.CloseDevTools(crm.Browser);
-  DevTools.Visible := False;
-  Splitter.Visible := False;
-end;
+{$R *.dfm}
 
 procedure TMainForm.actDevToolExecute(Sender: TObject);
 begin
-  Splitter.Visible := True;
-  DevTools.Visible := True;
-  DevTools.ShowDevTools(crm.Browser);
+  if actDevTool.Checked then
+  begin
+    DevTools.Visible := True;
+    Splitter.Visible := True;
+    DevTools.ShowDevTools(crm.Browser);
+  end else
+  begin
+    DevTools.CloseDevTools(crm.Browser);
+    Splitter.Visible := False;
+    DevTools.Visible := False;
+  end;
 end;
 
 procedure TMainForm.actDocExecute(Sender: TObject);
@@ -304,6 +311,13 @@ begin
     edAddress.Text := url;
 end;
 
+procedure TMainForm.crmBeforeContextMenu(Sender: TObject;
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const params: ICefContextMenuParams; const model: ICefMenuModel);
+begin
+  model.AddItem(CUSTOMMENUCOMMAND_INSPECTELEMENT, 'Inspect Element');
+end;
+
 procedure TMainForm.crmBeforeDownload(Sender: TObject;
   const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
   const suggestedName: ustring; const callback: ICefBeforeDownloadCallback);
@@ -335,6 +349,28 @@ begin
       u.host := 'www.google.com';
       request.Url := CefCreateUrl(u);
     end;
+end;
+
+procedure TMainForm.crmContextMenuCommand(Sender: TObject;
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const params: ICefContextMenuParams; commandId: Integer;
+  eventFlags: TCefEventFlags; out Result: Boolean);
+var
+  mousePoint: TCefPoint;
+begin
+  Result := False;
+  if (commandId = CUSTOMMENUCOMMAND_INSPECTELEMENT) then
+  begin
+    mousePoint.x := params.XCoord;
+    mousePoint.y := params.YCoord;
+    Splitter.Visible := True;
+    DevTools.Visible := True;
+    actDevTool.Checked := True;
+    DevTools.CloseDevTools(crm.Browser);
+    application.ProcessMessages;
+    DevTools.ShowDevTools(crm.Browser,@mousePoint);
+    Result := True;
+  end;
 end;
 
 procedure TMainForm.crmDownloadUpdated(Sender: TObject;

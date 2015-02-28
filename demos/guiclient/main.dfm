@@ -27,7 +27,7 @@ object MainForm: TMainForm
     Align = alBottom
     Visible = False
     ExplicitTop = 25
-    ExplicitWidth = 463
+    ExplicitWidth = 408
   end
   object crm: TChromium
     Left = 0
@@ -40,6 +40,8 @@ object MainForm: TMainForm
     OnProcessMessageReceived = crmProcessMessageReceived
     OnLoadStart = crmLoadStart
     OnLoadEnd = crmLoadEnd
+    OnBeforeContextMenu = crmBeforeContextMenu
+    OnContextMenuCommand = crmContextMenuCommand
     OnAddressChange = crmAddressChange
     OnTitleChange = crmTitleChange
     OnStatusMessage = crmStatusMessage
@@ -47,22 +49,25 @@ object MainForm: TMainForm
     OnDownloadUpdated = crmDownloadUpdated
     OnBeforePopup = crmBeforePopup
     OnBeforeResourceLoad = crmBeforeResourceLoad
+    ExplicitHeight = 344
   end
   object DevTools: TChromiumDevTools
     Left = 0
-    Top = 452
+    Top = 433
     Width = 864
     Height = 200
     Align = alBottom
     Visible = False
+    ExplicitTop = 436
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 433
+    Top = 633
     Width = 864
     Height = 19
     Panels = <>
     SimplePanel = True
+    ExplicitTop = 439
   end
   object Panel1: TPanel
     Left = 0
@@ -179,6 +184,7 @@ object MainForm: TMainForm
       OnExecute = actDomExecute
     end
     object actDevTool: TAction
+      AutoCheck = True
       Caption = 'Show DevTools'
       OnExecute = actDevToolExecute
     end
@@ -193,10 +199,6 @@ object MainForm: TMainForm
     object actFileScheme: TAction
       Caption = 'File Scheme'
       OnExecute = actFileSchemeExecute
-    end
-    object actCloseDevTools: TAction
-      Caption = 'Close Dev Tools'
-      OnExecute = actCloseDevToolsExecute
     end
     object actPrint: TAction
       Caption = 'Print'
@@ -245,9 +247,8 @@ object MainForm: TMainForm
       end
       object DevelopperTools1: TMenuItem
         Action = actDevTool
-      end
-      object CloseDevTools1: TMenuItem
-        Action = actCloseDevTools
+        AutoCheck = True
+        ShortCut = 123
       end
     end
     object Help1: TMenuItem

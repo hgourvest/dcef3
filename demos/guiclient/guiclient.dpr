@@ -22,7 +22,7 @@ begin
   if not CefLoadLibDefault then
     Exit;
 
-  CefRegisterSchemeHandlerFactory('local', '', False, TFileScheme);
+  CefRegisterSchemeHandlerFactory('local', '', TFileScheme);
 
 
   Application.Initialize;

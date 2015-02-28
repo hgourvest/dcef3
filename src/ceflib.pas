@@ -7482,7 +7482,7 @@ type
     function New(const browser: ICefBrowser; const frame: ICefFrame;
       const schemeName: ustring; const request: ICefRequest): ICefResourceHandler; virtual;
   public
-    constructor Create(const AClass: TCefResourceHandlerClass; SyncMainThread: Boolean); virtual;
+    constructor Create(const AClass: TCefResourceHandlerClass); virtual;
   end;
 
   TCefv8HandlerOwn = class(TCefBaseOwn, ICefv8Handler)
@@ -8499,7 +8499,7 @@ procedure CefSetOsModalLoop(loop: Boolean);
 procedure CefShutDown;
 
 function CefRegisterSchemeHandlerFactory(const SchemeName, HostName: ustring;
-  SyncMainThread: Boolean; const handler: TCefResourceHandlerClass): Boolean; overload;
+  const handler: TCefResourceHandlerClass): Boolean; overload;
 
 function CefRegisterSchemeHandlerFactory(const SchemeName, HostName: ustring;
   const factory: ICefSchemeHandlerFactory): Boolean; overload;
@@ -9917,7 +9917,7 @@ begin
 end;
 
 function CefRegisterSchemeHandlerFactory(const SchemeName, HostName: ustring;
-  SyncMainThread: Boolean; const handler: TCefResourceHandlerClass): Boolean;
+  const handler: TCefResourceHandlerClass): Boolean;
 var
   s, h: TCefString;
 begin
@@ -9927,7 +9927,7 @@ begin
   Result := cef_register_scheme_handler_factory(
     @s,
     @h,
-    CefGetData(TCefSchemeHandlerFactoryOwn.Create(handler, SyncMainThread) as ICefBase)) <> 0;
+    CefGetData(TCefSchemeHandlerFactoryOwn.Create(handler) as ICefBase)) <> 0;
 end;
 
 function CefRegisterSchemeHandlerFactory(const SchemeName, HostName: ustring;
@@ -16910,7 +16910,7 @@ end;
 { TCefSchemeHandlerFactoryOwn }
 
 constructor TCefSchemeHandlerFactoryOwn.Create(
-  const AClass: TCefResourceHandlerClass; SyncMainThread: Boolean);
+  const AClass: TCefResourceHandlerClass);
 begin
   inherited CreateData(SizeOf(TCefSchemeHandlerFactory));
   FClass := AClass;
