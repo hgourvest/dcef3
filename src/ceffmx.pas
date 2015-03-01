@@ -78,7 +78,6 @@ type
     FOnResourceRedirect: TOnResourceRedirect;
     FOnGetAuthCredentials: TOnGetAuthCredentials;
     FOnQuotaRequest: TOnQuotaRequest;
-    FOnGetCookieManager: TOnGetCookieManager;
     FOnProtocolExecution: TOnProtocolExecution;
     FOnBeforePluginLoad: TOnBeforePluginLoad;
     FOnCertificateError: TOnCertificateError;
@@ -184,8 +183,6 @@ type
       const callback: ICefAuthCallback): Boolean; virtual;
     function doOnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
       newSize: Int64; const callback: ICefQuotaCallback): Boolean; virtual;
-    function doOnGetCookieManager(const browser: ICefBrowser;
-      const mainUrl: ustring): ICefCookieManager; virtual;
     procedure doOnProtocolExecution(const browser: ICefBrowser;
       const url: ustring; out allowOsExecution: Boolean); virtual;
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url,
@@ -260,7 +257,6 @@ type
     property OnResourceRedirect: TOnResourceRedirect read FOnResourceRedirect write FOnResourceRedirect;
     property OnGetAuthCredentials: TOnGetAuthCredentials read FOnGetAuthCredentials write FOnGetAuthCredentials;
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest write FOnQuotaRequest;
-    property OnGetCookieManager: TOnGetCookieManager read FOnGetCookieManager write FOnGetCookieManager;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
     property OnBeforePluginLoad: TOnBeforePluginLoad read FOnBeforePluginLoad write FOnBeforePluginLoad;
     property OnCertificateError: TOnCertificateError read FOnCertificateError write FOnCertificateError;
@@ -333,7 +329,6 @@ type
     property OnResourceRedirect;
     property OnGetAuthCredentials;
     property OnQuotaRequest;
-    property OnGetCookieManager;
     property OnProtocolExecution;
     property OnBeforePluginLoad;
     property OnCertificateError;
@@ -700,14 +695,6 @@ begin
   if Assigned(FOnGetAuthCredentials) then
     FOnGetAuthCredentials(Self, browser, frame, isProxy, host,
       port, realm, scheme, callback, Result);
-end;
-
-function TCustomChromiumFMX.doOnGetCookieManager(const browser: ICefBrowser;
-  const mainUrl: ustring): ICefCookieManager;
-begin
-  if Assigned(FOnGetCookieManager) then
-    FOnGetCookieManager(Self, browser, mainUrl, Result) else
-    Result := nil;
 end;
 
 function TCustomChromiumFMX.doOnGetResourceHandler(const browser: ICefBrowser;

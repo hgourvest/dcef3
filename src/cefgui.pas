@@ -102,10 +102,8 @@ type
   TOnQuotaRequest = procedure(Sender: TObject; const browser: ICefBrowser;
     const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback;
     out Result: Boolean) of object;
-  TOnGetCookieManager = procedure(Sender: TObject; const browser: ICefBrowser;
-    const mainUrl: ustring; out Result: ICefCookieManager) of object;
   TOnProtocolExecution = procedure(Sender: TObject; const browser: ICefBrowser;
-    const url: ustring; out allowOsExecution: Boolean) of object;
+    const url: ustring; out allowOsExecution: Boolean) of object;
   TOnBeforePluginLoad = procedure(Sender: TObject; const browser: ICefBrowser;
     const url, policyUrl: ustring; const info: ICefWebPluginInfo; out Result: Boolean) of Object;
   TOnCertificateError = procedure(Sender: TObject; certError: TCefErrorCode; const requestUrl: ustring;
@@ -301,7 +299,6 @@ type
       const callback: ICefAuthCallback): Boolean;
     function doOnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
       newSize: Int64; const callback: ICefQuotaCallback): Boolean;
-    function doOnGetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager;
     procedure doOnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean);
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo): Boolean;
@@ -526,7 +523,6 @@ type
       const callback: ICefAuthCallback): Boolean; override;
     function OnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
       newSize: Int64; const callback: ICefQuotaCallback): Boolean; override;
-    function GetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager; override;
     procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean); override;
     function OnBeforePluginLoad(const browser: ICefBrowser; const url: ustring;
       const policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; override;
@@ -980,12 +976,6 @@ function TCustomRequestHandler.GetAuthCredentials(const browser: ICefBrowser;
 begin
   Result := FEvent.doOnGetAuthCredentials(browser, frame, isProxy, host, port,
     realm, scheme, callback);
-end;
-
-function TCustomRequestHandler.GetCookieManager(const browser: ICefBrowser;
-  const mainUrl: ustring): ICefCookieManager;
-begin
-  Result := FEvent.doOnGetCookieManager(browser, mainUrl);
 end;
 
 function TCustomRequestHandler.GetResourceHandler(const browser: ICefBrowser;

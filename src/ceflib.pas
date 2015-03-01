@@ -6587,7 +6587,6 @@ type
       const callback: ICefAuthCallback): Boolean;
     function OnQuotaRequest(const browser: ICefBrowser;
       const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback): Boolean;
-    function GetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager;
     procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean);
     function OnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo): Boolean;
