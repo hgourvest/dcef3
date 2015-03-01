@@ -36,8 +36,6 @@ type
   TOnLoadEnd = procedure(Sender: TObject; const browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer) of object;
   TOnLoadError = procedure(Sender: TObject; const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
     const errorText, failedUrl: ustring) of object;
-  TOnRenderProcessTerminated = procedure(Sender: TObject; const browser: ICefBrowser; status: TCefTerminationStatus) of object;
-  TOnPluginCrashed = procedure(Sender: TObject; const browser: ICefBrowser; const pluginPath: ustring) of object;
 
   TOnTakeFocus = procedure(Sender: TObject; const browser: ICefBrowser; next: Boolean) of object;
   TOnSetFocus = procedure(Sender: TObject; const browser: ICefBrowser; source: TCefFocusSource; out Result: Boolean) of object;
@@ -110,6 +108,11 @@ type
     const url: ustring; out allowOsExecution: Boolean) of object;
   TOnBeforePluginLoad = procedure(Sender: TObject; const browser: ICefBrowser;
     const url, policyUrl: ustring; const info: ICefWebPluginInfo; out Result: Boolean) of Object;
+  TOnCertificateError = procedure(Sender: TObject; certError: TCefErrorCode; const requestUrl: ustring;
+    const callback: ICefAllowCertificateErrorCallback; out Result: Boolean) of Object;
+  TOnPluginCrashed = procedure(Sender: TObject; const browser: ICefBrowser; const pluginPath: ustring) of object;
+  TOnRenderProcessTerminated = procedure(Sender: TObject; const browser: ICefBrowser; status: TCefTerminationStatus) of object;
+
 
   TOnFileDialog = procedure(Sender: TObject; const browser: ICefBrowser;
     mode: TCefFileDialogMode; const title, defaultFileName: ustring;
@@ -302,10 +305,12 @@ type
     procedure doOnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean);
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo): Boolean;
-    procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus);
+    function doOnCertificateError(certError: TCefErrorCode; const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback): Boolean;
     procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring);
+    procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus);
 
-    function doOnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
+    function doOnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
       const title, defaultFileName: ustring; acceptTypes: TStrings;
       const callback: ICefFileDialogCallback): Boolean;
 
@@ -525,6 +530,8 @@ type
     procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean); override;
     function OnBeforePluginLoad(const browser: ICefBrowser; const url: ustring;
       const policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; override;
+    function OnCertificateError(certError: TCefErrorCode; const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback): Boolean; override;
     procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); override;
     procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); override;
   public
@@ -1004,6 +1011,13 @@ function TCustomRequestHandler.OnBeforeResourceLoad(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest): Boolean;
 begin
   Result := FEvent.doOnBeforeResourceLoad(browser, frame, request);
+end;
+
+function TCustomRequestHandler.OnCertificateError(certError: TCefErrorCode;
+  const requestUrl: ustring;
+  const callback: ICefAllowCertificateErrorCallback): Boolean;
+begin
+  Result := FEvent.doOnCertificateError(certError, requestUrl, callback);
 end;
 
 procedure TCustomRequestHandler.OnPluginCrashed(const browser: ICefBrowser;

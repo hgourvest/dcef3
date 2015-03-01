@@ -49,7 +49,7 @@ object MainForm: TMainForm
     OnDownloadUpdated = crmDownloadUpdated
     OnBeforePopup = crmBeforePopup
     OnBeforeResourceLoad = crmBeforeResourceLoad
-    ExplicitHeight = 344
+    OnCertificateError = crmCertificateError
   end
   object DevTools: TChromiumDevTools
     Left = 0
@@ -58,7 +58,6 @@ object MainForm: TMainForm
     Height = 200
     Align = alBottom
     Visible = False
-    ExplicitTop = 436
   end
   object StatusBar: TStatusBar
     Left = 0
@@ -67,7 +66,6 @@ object MainForm: TMainForm
     Height = 19
     Panels = <>
     SimplePanel = True
-    ExplicitTop = 439
   end
   object Panel1: TPanel
     Left = 0

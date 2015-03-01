@@ -114,6 +114,9 @@ type
     procedure crmContextMenuCommand(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; const params: ICefContextMenuParams;
       commandId: Integer; eventFlags: TCefEventFlags; out Result: Boolean);
+    procedure crmCertificateError(Sender: TObject; certError: Integer;
+      const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -349,6 +352,15 @@ begin
       u.host := 'www.google.com';
       request.Url := CefCreateUrl(u);
     end;
+end;
+
+procedure TMainForm.crmCertificateError(Sender: TObject; certError: Integer;
+  const requestUrl: ustring; const callback: ICefAllowCertificateErrorCallback;
+  out Result: Boolean);
+begin
+  // let use untrusted certificates (ex: cacert.org)
+  callback.Cont(True);
+  Result := True;
 end;
 
 procedure TMainForm.crmContextMenuCommand(Sender: TObject;

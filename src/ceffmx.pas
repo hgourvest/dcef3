@@ -41,8 +41,6 @@ type
     FOnLoadStart: TOnLoadStart;
     FOnLoadEnd: TOnLoadEnd;
     FOnLoadError: TOnLoadError;
-    FOnRenderProcessTerminated: TOnRenderProcessTerminated;
-    FOnPluginCrashed: TOnPluginCrashed;
 
     FOnTakeFocus: TOnTakeFocus;
     FOnSetFocus: TOnSetFocus;
@@ -82,11 +80,12 @@ type
     FOnQuotaRequest: TOnQuotaRequest;
     FOnGetCookieManager: TOnGetCookieManager;
     FOnProtocolExecution: TOnProtocolExecution;
-
     FOnBeforePluginLoad: TOnBeforePluginLoad;
+    FOnCertificateError: TOnCertificateError;
+    FOnPluginCrashed: TOnPluginCrashed;
+    FOnRenderProcessTerminated: TOnRenderProcessTerminated;
 
     FOnFileDialog: TOnFileDialog;
-
     FOnDragEnter: TOnDragEnter;
 
     FOptions: TChromiumOptions;
@@ -118,8 +117,6 @@ type
     procedure doOnLoadEnd(const browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer); virtual;
     procedure doOnLoadError(const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
       const errorText, failedUrl: ustring); virtual;
-    procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); virtual;
-    procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
 
     procedure doOnTakeFocus(const browser: ICefBrowser; next: Boolean); virtual;
     function doOnSetFocus(const browser: ICefBrowser; source: TCefFocusSource): Boolean; virtual;
@@ -190,11 +187,13 @@ type
     function doOnGetCookieManager(const browser: ICefBrowser;
       const mainUrl: ustring): ICefCookieManager; virtual;
     procedure doOnProtocolExecution(const browser: ICefBrowser;
-
       const url: ustring; out allowOsExecution: Boolean); virtual;
-
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url,
       policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; virtual;
+    function doOnCertificateError(certError: TCefErrorCode; const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback): Boolean; virtual;
+    procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); virtual;
+    procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
 
     function doOnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
       const title, defaultFileName: ustring; acceptTypes: TStrings;
@@ -224,8 +223,6 @@ type
     property OnLoadStart: TOnLoadStart read FOnLoadStart write FOnLoadStart;
     property OnLoadEnd: TOnLoadEnd read FOnLoadEnd write FOnLoadEnd;
     property OnLoadError: TOnLoadError read FOnLoadError write FOnLoadError;
-    property OnRenderProcessTerminated: TOnRenderProcessTerminated read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
-    property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed write FOnPluginCrashed;
 
     property OnTakeFocus: TOnTakeFocus read FOnTakeFocus write FOnTakeFocus;
     property OnSetFocus: TOnSetFocus read FOnSetFocus write FOnSetFocus;
@@ -265,8 +262,10 @@ type
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest write FOnQuotaRequest;
     property OnGetCookieManager: TOnGetCookieManager read FOnGetCookieManager write FOnGetCookieManager;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
-
     property OnBeforePluginLoad: TOnBeforePluginLoad read FOnBeforePluginLoad write FOnBeforePluginLoad;
+    property OnCertificateError: TOnCertificateError read FOnCertificateError write FOnCertificateError;
+    property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed write FOnPluginCrashed;
+    property OnRenderProcessTerminated: TOnRenderProcessTerminated read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
 
     property OnFileDialog: TOnFileDialog read FOnFileDialog write FOnFileDialog;
     property OnDragEnter: TOnDragEnter read FOnDragEnter write FOnDragEnter;
@@ -297,8 +296,6 @@ type
     property OnLoadStart;
     property OnLoadEnd;
     property OnLoadError;
-    property OnRenderProcessTerminated;
-    property OnPluginCrashed;
 
     property OnTakeFocus;
     property OnSetFocus;
@@ -338,8 +335,10 @@ type
     property OnQuotaRequest;
     property OnGetCookieManager;
     property OnProtocolExecution;
-
     property OnBeforePluginLoad;
+    property OnCertificateError;
+    property OnPluginCrashed;
+    property OnRenderProcessTerminated;
 
     property OnFileDialog;
     property OnDragEnter;
@@ -583,6 +582,15 @@ procedure TCustomChromiumFMX.doOnCancelGeolocationPermission(
 begin
   if Assigned(FOnCancelGeolocationPermission) then
     FOnCancelGeolocationPermission(Self, browser, requestingUrl, requestId);
+end;
+
+function TCustomChromiumFMX.doOnCertificateError(certError: TCefErrorCode;
+  const requestUrl: ustring;
+  const callback: ICefAllowCertificateErrorCallback): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnCertificateError) then
+    FOnCertificateError(Self, certError, requestUrl, callback, Result);
 end;
 
 function TCustomChromiumFMX.doOnClose(const browser: ICefBrowser): Boolean;
