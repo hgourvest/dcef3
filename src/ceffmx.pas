@@ -1179,9 +1179,9 @@ begin
     brws := FBrowser;
     if (brws <> nil) then
     begin
-      if FBuffer <> nil then
-        FBuffer.Free;
-      FBuffer := TBitmap.Create(Trunc(Width), Trunc(Height));
+      if FBuffer = nil then
+        FBuffer := TBitmap.Create(Trunc(Width), Trunc(Height)) else
+        FBuffer.SetSize(Trunc(Width), Trunc(Height));
       brws.Host.WasResized;
     end;
   end;
