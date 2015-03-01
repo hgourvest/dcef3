@@ -14062,27 +14062,36 @@ function TCefRTTIExtension.SetValue(const v: TValue; var ret: ICefv8Value): Bool
     ud: ICefv8Value;
     rt: TRttiType;
   begin
-    rt := FCtx.GetType(v.TypeInfo);
 
-    ud := TCefv8ValueRef.NewArray(2);
-{$IFDEF CPUX64}
-    ud.SetValueByIndex(0, TCefv8ValueRef.NewString(PtrToStr(rt)));
-    ud.SetValueByIndex(1, TCefv8ValueRef.NewString(PtrToStr(Pointer(v.AsInterface))));
-{$ELSE}
-    ud.SetValueByIndex(0, TCefv8ValueRef.NewInt(Integer(rt)));
-    ud.SetValueByIndex(1, TCefv8ValueRef.NewInt(Integer(v.AsInterface)));
-{$ENDIF}
-    ret := TCefv8ValueRef.NewObject(nil);
-    ret.SetUserData(ud);
+    if TypeInfo(ICefV8Value) = v.TypeInfo then
+    begin
+      ret := ICefV8Value(v.AsInterface);
+      Result := True;
+    end else
+    begin
+      rt := FCtx.GetType(v.TypeInfo);
 
-    for m in rt.GetMethods do
-      if m.Visibility > mvProtected then
-      begin
-        f := TCefv8ValueRef.NewFunction(m.Name, Self);
-        ret.SetValueByKey(m.Name, f, []);
-      end;
 
-    Result := True;
+      ud := TCefv8ValueRef.NewArray(2);
+  {$IFDEF CPUX64}
+      ud.SetValueByIndex(0, TCefv8ValueRef.NewString(PtrToStr(rt)));
+      ud.SetValueByIndex(1, TCefv8ValueRef.NewString(PtrToStr(Pointer(v.AsInterface))));
+  {$ELSE}
+      ud.SetValueByIndex(0, TCefv8ValueRef.NewInt(Integer(rt)));
+      ud.SetValueByIndex(1, TCefv8ValueRef.NewInt(Integer(v.AsInterface)));
+  {$ENDIF}
+      ret := TCefv8ValueRef.NewObject(nil);
+      ret.SetUserData(ud);
+
+      for m in rt.GetMethods do
+        if m.Visibility > mvProtected then
+        begin
+          f := TCefv8ValueRef.NewFunction(m.Name, Self);
+          ret.SetValueByKey(m.Name, f, []);
+        end;
+
+      Result := True;
+    end;
   end;
 
   function ProcessFloat: Boolean;
