@@ -29,6 +29,7 @@ var
   brows: ICefBrowser = nil;
   browserId: Integer = 0;
   navigateto: ustring = 'http://www.google.com';
+  setting: TCefBrowserSettings;
 
 function CefWndProc(Wnd: HWND; message: UINT; wParam: Integer; lParam: Integer): Integer; stdcall;
 var
@@ -36,7 +37,6 @@ var
   info: TCefWindowInfo;
   rect: TRect;
   hdwp: THandle;
-  setting: TCefBrowserSettings;
 begin
   case message of
     WM_PAINT:

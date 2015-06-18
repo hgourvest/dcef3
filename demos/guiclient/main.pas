@@ -100,13 +100,6 @@ type
     procedure crmProcessMessageReceived(Sender: TObject;
       const browser: ICefBrowser; sourceProcess: TCefProcessId;
       const message: ICefProcessMessage; out Result: Boolean);
-    procedure crmBeforeResourceLoad(Sender: TObject; const browser: ICefBrowser;
-      const frame: ICefFrame; const request: ICefRequest; out Result: Boolean);
-    procedure crmBeforePopup(Sender: TObject; const browser: ICefBrowser;
-      const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
-      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-      var client: ICefClient; var settings: TCefBrowserSettings;
-      var noJavascriptAccess: Boolean; out Result: Boolean);
     procedure actPrintExecute(Sender: TObject);
     procedure crmBeforeContextMenu(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; const params: ICefContextMenuParams;
@@ -114,9 +107,18 @@ type
     procedure crmContextMenuCommand(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; const params: ICefContextMenuParams;
       commandId: Integer; eventFlags: TCefEventFlags; out Result: Boolean);
-    procedure crmCertificateError(Sender: TObject; certError: Integer;
-      const requestUrl: ustring;
-      const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
+    procedure crmCertificateError(Sender: TObject; const browser: ICefBrowser;
+      certError: Integer; const requestUrl: ustring; sslInfo: ICefSslInfo;
+      const callback: ICefRequestCallback; out Result: Boolean);
+    procedure crmBeforePopup(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+      targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
+      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+      var client: ICefClient; var settings: TCefBrowserSettings;
+      var noJavascriptAccess: Boolean; out Result: Boolean);
+    procedure crmBeforeResourceLoad(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; const request: ICefRequest;
+      const callback: ICefRequestCallback; out Result: TCefReturnValue);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -330,6 +332,7 @@ end;
 
 procedure TMainForm.crmBeforePopup(Sender: TObject; const browser: ICefBrowser;
   const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+  targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
   var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
   var client: ICefClient; var settings: TCefBrowserSettings;
   var noJavascriptAccess: Boolean; out Result: Boolean);
@@ -341,7 +344,8 @@ end;
 
 procedure TMainForm.crmBeforeResourceLoad(Sender: TObject;
   const browser: ICefBrowser; const frame: ICefFrame;
-  const request: ICefRequest; out Result: Boolean);
+  const request: ICefRequest; const callback: ICefRequestCallback;
+  out Result: TCefReturnValue);
 var
   u: TUrlParts;
 begin
@@ -354,8 +358,9 @@ begin
     end;
 end;
 
-procedure TMainForm.crmCertificateError(Sender: TObject; certError: Integer;
-  const requestUrl: ustring; const callback: ICefAllowCertificateErrorCallback;
+procedure TMainForm.crmCertificateError(Sender: TObject;
+  const browser: ICefBrowser; certError: Integer; const requestUrl: ustring;
+  sslInfo: ICefSslInfo; const callback: ICefRequestCallback;
   out Result: Boolean);
 begin
   // let use untrusted certificates (ex: cacert.org)

@@ -32,7 +32,8 @@ type
   protected
     procedure OnAfterCreated(const browser: ICefBrowser); override;
     function OnBeforePopup(const browser: ICefBrowser; const frame: ICefFrame;
-      const targetUrl, targetFrameName: ustring; var popupFeatures: TCefPopupFeatures;
+      const targetUrl, targetFrameName: ustring; targetDisposition: TCefWindowOpenDisposition;
+      userGesture: Boolean; var popupFeatures: TCefPopupFeatures;
       var windowInfo: TCefWindowInfo; var client: ICefClient; var settings: TCefBrowserSettings;
       var noJavascriptAccess: Boolean): Boolean; override;
     procedure OnBeforeClose(const browser: ICefBrowser); override;
@@ -83,6 +84,9 @@ const
   IDC_NAV_RELOAD = 202;
   IDC_NAV_STOP = 203;
 
+var
+  setting: TCefBrowserSettings;
+
 function CefWndProc(Wnd: HWND; message: UINT; wParam: Integer; lParam: Integer): Integer; stdcall;
 var
   ps: PAINTSTRUCT;
@@ -92,7 +96,6 @@ var
   x: Integer;
   strPtr: array[0..MAX_URL_LENGTH-1] of WideChar;
   strLen, urloffset: Integer;
-  setting: TCefBrowserSettings;
 begin
   if Wnd = editWnd then
     case message of
@@ -174,6 +177,7 @@ begin
           info.Height := rect.bottom - rect.top;
           FillChar(setting, sizeof(setting), 0);
           setting.size := SizeOf(setting);
+
           CefBrowserHostCreate(@info, handl, navigateto, @setting, nil);
           isLoading := False;
           canGoBack := False;
@@ -306,10 +310,10 @@ begin
     brows := nil;
 end;
 
-function TCustomLifeSpan.OnBeforePopup(const browser: ICefBrowser;
-  const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
-  var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-  var client: ICefClient; var settings: TCefBrowserSettings;
+function TCustomLifeSpan.OnBeforePopup(const browser: ICefBrowser; const frame: ICefFrame;
+  const targetUrl, targetFrameName: ustring; targetDisposition: TCefWindowOpenDisposition;
+  userGesture: Boolean; var popupFeatures: TCefPopupFeatures;
+  var windowInfo: TCefWindowInfo; var client: ICefClient; var settings: TCefBrowserSettings;
   var noJavascriptAccess: Boolean): Boolean;
 begin
   if targetUrl = 'about:blank' then

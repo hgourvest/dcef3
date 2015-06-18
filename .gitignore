@@ -1,2 +1,4 @@
 /src/__history
 *.dcu
+/bin/Win32/cache
+/bin/Win64/cache
