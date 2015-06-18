@@ -114,7 +114,7 @@ type
   TOnBeforePluginLoad = procedure(Sender: TObject; const browser: ICefBrowser;
     const url, policyUrl: ustring; const info: ICefWebPluginInfo; out Result: Boolean) of Object;
   TOnCertificateError = procedure(Sender: TObject; const browser: ICefBrowser;
-    certError: TCefErrorcode; const requestUrl: ustring; sslInfo: ICefSslInfo;
+    certError: TCefErrorcode; const requestUrl: ustring; const sslInfo: ICefSslInfo;
     const callback: ICefRequestCallback; out Result: Boolean) of Object;
   TOnPluginCrashed = procedure(Sender: TObject; const browser: ICefBrowser;
     const pluginPath: ustring) of object;
@@ -327,7 +327,7 @@ type
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo): Boolean;
     function doOnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
-      const requestUrl: ustring; sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean;
+      const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean;
     procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring);
     procedure doOnRenderViewReady(const browser: ICefBrowser);
     procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus);
@@ -568,7 +568,7 @@ type
     function OnBeforePluginLoad(const browser: ICefBrowser; const url: ustring;
       const policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; override;
     function OnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
-      const requestUrl: ustring; sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; override;
+      const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; override;
     procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); override;
     procedure OnRenderViewReady(const browser: ICefBrowser); override;
     procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); override;
@@ -1080,7 +1080,7 @@ begin
 end;
 
 function TCustomRequestHandler.OnCertificateError(const browser: ICefBrowser;
-  certError: TCefErrorcode; const requestUrl: ustring; sslInfo: ICefSslInfo;
+  certError: TCefErrorcode; const requestUrl: ustring; const sslInfo: ICefSslInfo;
   const callback: ICefRequestCallback): Boolean;
 begin
   Result := FEvent.doOnCertificateError(browser, certError, requestUrl, sslInfo, callback);

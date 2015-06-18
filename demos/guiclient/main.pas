@@ -108,7 +108,7 @@ type
       const frame: ICefFrame; const params: ICefContextMenuParams;
       commandId: Integer; eventFlags: TCefEventFlags; out Result: Boolean);
     procedure crmCertificateError(Sender: TObject; const browser: ICefBrowser;
-      certError: Integer; const requestUrl: ustring; sslInfo: ICefSslInfo;
+      certError: Integer; const requestUrl: ustring; const sslInfo: ICefSslInfo;
       const callback: ICefRequestCallback; out Result: Boolean);
     procedure crmBeforePopup(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
@@ -360,10 +360,11 @@ end;
 
 procedure TMainForm.crmCertificateError(Sender: TObject;
   const browser: ICefBrowser; certError: Integer; const requestUrl: ustring;
-  sslInfo: ICefSslInfo; const callback: ICefRequestCallback;
+  const sslInfo: ICefSslInfo; const callback: ICefRequestCallback;
   out Result: Boolean);
 begin
   // let use untrusted certificates (ex: cacert.org)
+  MainForm.Caption := sslInfo.GetIssuer.GetDisplayName;
   callback.Cont(True);
   Result := True;
 end;

@@ -7296,7 +7296,7 @@ type
     function OnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo): Boolean;
     function OnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
-      const requestUrl: ustring; sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean;
+      const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean;
     procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring);
     procedure OnRenderViewReady(const browser: ICefBrowser);
     procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus);
@@ -8065,7 +8065,7 @@ type
     function OnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo): Boolean; virtual;
     function OnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
-      const requestUrl: ustring; sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
+      const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
     procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
     procedure OnRenderViewReady(const browser: ICefBrowser); virtual;
     procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); virtual;
@@ -15864,7 +15864,7 @@ begin
 end;
 
 function TCefRequestHandlerOwn.OnCertificateError(const browser: ICefBrowser;
-  certError: TCefErrorcode; const requestUrl: ustring; sslInfo: ICefSslInfo;
+  certError: TCefErrorcode; const requestUrl: ustring; const sslInfo: ICefSslInfo;
   const callback: ICefRequestCallback): Boolean;
 begin
   Result := False;

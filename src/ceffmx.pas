@@ -203,7 +203,7 @@ type
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url,
       policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; virtual;
     function doOnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
-      const requestUrl: ustring; sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
+      const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
     procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); virtual;
     procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
     procedure doOnRenderViewReady(const browser: ICefBrowser); virtual;
@@ -614,7 +614,7 @@ begin
 end;
 
 function TCustomChromiumFMX.doOnCertificateError(const browser: ICefBrowser;
-  certError: TCefErrorcode; const requestUrl: ustring; sslInfo: ICefSslInfo;
+  certError: TCefErrorcode; const requestUrl: ustring; const sslInfo: ICefSslInfo;
   const callback: ICefRequestCallback): Boolean;
 begin
   Result := False;
