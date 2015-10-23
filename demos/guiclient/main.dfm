@@ -50,6 +50,7 @@ object MainForm: TMainForm
     OnBeforePopup = crmBeforePopup
     OnBeforeResourceLoad = crmBeforeResourceLoad
     OnCertificateError = crmCertificateError
+    ExplicitTop = 22
   end
   object DevTools: TChromiumDevTools
     Left = 0

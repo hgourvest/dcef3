@@ -1280,6 +1280,11 @@ type
     MENU_ID_NO_SPELLING_SUGGESTIONS        = 205,
     MENU_ID_ADD_TO_DICTIONARY              = 206,
 
+    // Custom menu items originating from the renderer process. For example,
+    // plugin placeholder menu items or Flash menu items.
+    MENU_ID_CUSTOM_FIRST        = 220,
+    MENU_ID_CUSTOM_LAST         = 250,
+
     // All user-defined menu IDs should come between MENU_ID_USER_FIRST and
     // MENU_ID_USER_LAST to avoid overlapping the Chromium and CEF ID ranges
     // defined in the tools/gritsettings/resource_ids file.
@@ -1827,26 +1832,100 @@ type
   );
 
   // Options that can be passed to CefWriteJSON.
-  // todo: set of
-  TCefJsonWriterOptions = (
-    // Default behavior.
-    JSON_WRITER_DEFAULT = 0,
-
+  // Default behavior.
+//  JSON_WRITER_DEFAULT = 0;
+  TCefJsonWriterOption = (
     // This option instructs the writer that if a Binary value is encountered,
     // the value (and key if within a dictionary) will be omitted from the
     // output, and success will be returned. Otherwise, if a binary value is
     // encountered, failure will be returned.
-    JSON_WRITER_OMIT_BINARY_VALUES = 1 shl 0,
+    JSON_WRITER_OMIT_BINARY_VALUES,
 
     // This option instructs the writer to write doubles that have no fractional
     // part as a normal integer (i.e., without using exponential notation
     // or appending a '.0') as long as the value is within the range of a
     // 64-bit int.
-    JSON_WRITER_OMIT_DOUBLE_TYPE_PRESERVATION = 1 shl 1,
+    JSON_WRITER_OMIT_DOUBLE_TYPE_PRESERVATION,
 
     // Return a slightly nicer formatted json string (pads with whitespace to
     // help with readability).
-    JSON_WRITER_PRETTY_PRINT = 1 shl 2
+    JSON_WRITER_PRETTY_PRINT
+  );
+  TCefJsonWriterOptions = set of TCefJsonWriterOption;
+
+  // Margin type for PDF printing.
+  TCefPdfPrintMarginType = (
+    // Default margins.
+    PDF_PRINT_MARGIN_DEFAULT,
+    // No margins.
+    PDF_PRINT_MARGIN_NONE,
+    // Minimum margins.
+    PDF_PRINT_MARGIN_MINIMUM,
+    // Custom margins using the |margin_*| values from cef_pdf_print_settings_t.
+    PDF_PRINT_MARGIN_CUSTOM
+  );
+
+  // Structure representing PDF print settings.
+  PCefPdfPrintSettings = ^TCefPdfPrintSettings;
+  TCefPdfPrintSettings = record
+    // Page title to display in the header. Only used if |header_footer_enabled|
+    // is set to true (1).
+    header_footer_title: TCefString;
+    // URL to display in the footer. Only used if |header_footer_enabled| is set
+    // to true (1).
+    header_footer_url: TCefString;
+    // Output page size in microns. If either of these values is less than or
+    // equal to zero then the default paper size (A4) will be used.
+    page_width: Integer;
+    page_height: Integer;
+    // Margins in millimeters. Only used if |margin_type| is set to
+    // PDF_PRINT_MARGIN_CUSTOM.
+    margin_top: double;
+    margin_right: double;
+    margin_bottom: double;
+    margin_left: double;
+    // Margin type.
+    margin_type: TCefPdfPrintMarginType;
+    // Set to true (1) to print headers and footers or false (0) to not print
+    // headers and footers.
+    header_footer_enabled: Integer;
+    // Set to true (1) to print the selection only or false (0) to print all.
+    selection_only: Integer;
+    // Set to true (1) for landscape mode or false (0) for portrait mode.
+    landscape: Integer;
+    // Set to true (1) to print background graphics or false (0) to not print
+    // background graphics.
+    backgrounds_enabled: Integer;
+  end;
+
+  // Supported UI scale factors for the platform. SCALE_FACTOR_NONE is used for
+  // density independent resources such as string, html/js files or an image that
+  // can be used for any scale factors (such as wallpapers).
+  TCefScaleFactor = (
+    SCALE_FACTOR_NONE = 0,
+    SCALE_FACTOR_100P,
+    SCALE_FACTOR_125P,
+    SCALE_FACTOR_133P,
+    SCALE_FACTOR_140P,
+    SCALE_FACTOR_150P,
+    SCALE_FACTOR_180P,
+    SCALE_FACTOR_200P,
+    SCALE_FACTOR_250P,
+    SCALE_FACTOR_300P
+  );
+
+  // Plugin policies supported by CefRequestContextHandler::OnBeforePluginLoad.
+  PCefPluginPolicy = ^TCefPluginPolicy;
+  TCefPluginPolicy = (
+    // Allow the content.
+    PLUGIN_POLICY_ALLOW,
+    // Allow important content and block unimportant content based on heuristics.
+    // The user can manually load blocked content.
+    PLUGIN_POLICY_DETECT_IMPORTANT,
+    // Block the content. The user can manually load blocked content.
+    PLUGIN_POLICY_BLOCK,
+    // Disable the content. The user cannot load disabled content.
+    PLUGIN_POLICY_DISABLE
   );
 
 (*******************************************************************************
@@ -1875,6 +1954,7 @@ type
   PCefBrowser = ^TCefBrowser;
   PCefRunFileDialogCallback = ^TCefRunFileDialogCallback;
   PCefBrowserHost = ^TCefBrowserHost;
+  PCefPdfPrintCallback = ^TCefPdfPrintCallback;
   PCefTask = ^TCefTask;
   PCefTaskRunner = ^TCefTaskRunner;
   PCefDownloadHandler = ^TCefDownloadHandler;
@@ -1912,6 +1992,7 @@ type
   PCefResourceHandler = ^TCefResourceHandler;
   PCefCallback = ^TCefCallback;
   PCefCompletionCallback = ^TCefCompletionCallback;
+  PCefRunContextMenuCallback = ^TCefRunContextMenuCallback;
   PCefContextMenuHandler = ^TCefContextMenuHandler;
   PCefContextMenuParams = ^TCefContextMenuParams;
   PCefMenuModel = ^TCefMenuModel;
@@ -1948,6 +2029,7 @@ type
   PCefValue = ^TCefValue;
   PCefSslCertPrincipal = ^TCefSslCertPrincipal;
   PCefSslInfo = ^TCefSslInfo;
+  PCefResourceBundle = ^TCefResourceBundle;
 
   // Structure defining the reference count implementation functions. All
   // framework structures must include the cef_base_t structure first.
@@ -2555,6 +2637,20 @@ type
       current, index, total: Integer): Integer; stdcall;
   end;
 
+  // Callback structure for cef_browser_host_t::PrintToPDF. The functions of this
+  // structure will be called on the browser process UI thread.
+  TCefPdfPrintCallback = record
+    // Base structure.
+    base: TCefBase;
+
+    // Method that will be executed when the PDF printing has completed. |path| is
+    // the output path. |ok| will be true (1) if the printing completed
+    // successfully or false (0) otherwise.
+    on_pdf_print_finished: procedure(self: PCefPdfPrintCallback;
+      const path: PCefString; ok: Integer); stdcall;
+  end;
+
+
   // Structure used to represent the browser process aspects of a browser window.
   // The functions of this structure can only be called in the browser process.
   // They may be called on any thread in that process unless otherwise indicated
@@ -2630,6 +2726,13 @@ type
 
     // Print the current browser contents.
     print: procedure(self: PCefBrowserHost); stdcall;
+
+    // Print the current browser contents to the PDF file specified by |path| and
+    // execute |callback| on completion. The caller is responsible for deleting
+    // |path| when done. For PDF printing to work on Linux you must implement the
+    // cef_print_handler_t::GetPdfPaperSize function.
+    print_to_pdf: procedure(self: PCefBrowserHost; const path: PCefString;
+        const settings: PCefPdfPrintSettings; callback: PCefPdfPrintCallback); stdcall;
 
     // Search for |searchText|. |identifier| can be used to have multiple searches
     // running simultaniously. |forward| indicates whether to search forward or
@@ -2924,21 +3027,31 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Called to retrieve a localized translation for the string specified by
-    // |message_id|. To provide the translation set |string| to the translation
-    // string and return true (1). To use the default translation return false
-    // (0). Supported message IDs are listed in cef_pack_strings.h.
+    // Called to retrieve a localized translation for the specified |string_id|.
+    // To provide the translation set |string| to the translation string and
+    // return true (1). To use the default translation return false (0). Include
+    // cef_pack_strings.h for a listing of valid string ID values.
     get_localized_string: function(self: PCefResourceBundleHandler;
-      message_id: Integer; string_val: PCefString): Integer; stdcall;
+      string_id: Integer; string_val: PCefString): Integer; stdcall;
 
-    // Called to retrieve data for the resource specified by |resource_id|. To
-    // provide the resource data set |data| and |data_size| to the data pointer
+    // Called to retrieve data for the specified scale independent |resource_id|.
+    // To provide the resource data set |data| and |data_size| to the data pointer
     // and size respectively and return true (1). To use the default resource data
     // return false (0). The resource data will not be copied and must remain
-    // resident in memory. Supported resource IDs are listed in
-    // cef_pack_resources.h.
+    // resident in memory. Include cef_pack_resources.h for a listing of valid
+    // resource ID values.
     get_data_resource: function(self: PCefResourceBundleHandler;
         resource_id: Integer; var data: Pointer; var data_size: NativeUInt): Integer; stdcall;
+
+    // Called to retrieve data for the specified |resource_id| nearest the scale
+    // factor |scale_factor|. To provide the resource data set |data| and
+    // |data_size| to the data pointer and size respectively and return true (1).
+    // To use the default resource data return false (0). The resource data will
+    // not be copied and must remain resident in memory. Include
+    // cef_pack_resources.h for a listing of valid resource ID values.
+    get_data_resource_for_scale: function(self: PCefResourceBundleHandler;
+      resource_id: Integer; scale_factor: TCefScaleFactor; out data: Pointer;
+      data_size: NativeUInt): Integer; stdcall;
   end;
 
   // Structure used to create and/or parse command line arguments. Arguments with
@@ -3527,11 +3640,6 @@ type
       const request_url: PCefString; ssl_info: PCefSslInfo;
       callback: PCefRequestCallback): Integer; stdcall;
 
-    // Called on the browser process IO thread before a plugin is loaded. Return
-    // true (1) to block loading of the plugin.
-    on_before_plugin_load: function(self: PCefRequestHandler; browser: PCefBrowser;
-      const url, policy_url: PCefString; info: PCefWebPluginInfo): Integer; stdcall;
-
     // Called on the browser process UI thread when a plugin has crashed.
     // |plugin_path| is the path of the plugin that crashed.
     on_plugin_crashed: procedure(self: PCefRequestHandler; browser: PCefBrowser;
@@ -3566,6 +3674,14 @@ type
     // Called when the page icon changes.
     on_favicon_urlchange: procedure(self: PCefDisplayHandler;
         browser: PCefBrowser; icon_urls: TCefStringList); stdcall;
+
+    // Called when web content in the page has toggled fullscreen mode. If
+    // |fullscreen| is true (1) the content will automatically be sized to fill
+    // the browser content area. If |fullscreen| is false (0) the content will
+    // automatically return to its original size and position. The client is
+    // responsible for resizing the browser if desired.
+    on_fullscreen_mode_change: procedure(self: PCefDisplayHandler;
+        browser: PCefBrowser; fullscreen: Integer); stdcall;
 
     // Called when the browser is about to display a tooltip. |text| contains the
     // text that will be displayed in the tooltip. To handle the display of the
@@ -3889,6 +4005,19 @@ type
       shift_pressed, ctrl_pressed, alt_pressed: PInteger): Integer; stdcall;
   end;
 
+
+  // Callback structure used for continuation of custom context menu display.
+  TCefRunContextMenuCallback = record
+    // Base structure.
+    base: TCefBase;
+    // Complete context menu display by selecting the specified |command_id| and
+    // |event_flags|.
+    cont: procedure(self: PCefRunContextMenuCallback; command_id: Integer;
+      event_flags: TCefEventFlags); stdcall;
+    // Cancel context menu display.
+    cancel: procedure(self: PCefRunContextMenuCallback); stdcall;
+  end;
+
   // Implement this structure to handle context menu events. The functions of this
   // structure will be called on the UI thread.
   TCefContextMenuHandler = record
@@ -3903,6 +4032,16 @@ type
     on_before_context_menu: procedure(self: PCefContextMenuHandler;
       browser: PCefBrowser; frame: PCefFrame; params: PCefContextMenuParams;
       model: PCefMenuModel); stdcall;
+
+    // Called to allow custom display of the context menu. |params| provides
+    // information about the context menu state. |model| contains the context menu
+    // model resulting from OnBeforeContextMenu. For custom display return true
+    // (1) and execute |callback| either synchronously or asynchronously with the
+    // selected command ID. For default display return false (0). Do not keep
+    // references to |params| or |model| outside of this callback.
+    run_context_menu: function(self: PCefContextMenuHandler;
+      browser: PCefBrowser; frame: PCefFrame; params: PCefContextMenuParams;
+      model: PCefMenuModel; callback: PCefRunContextMenuCallback): Integer; stdcall;
 
     // Called to execute a command selected from the context menu. Return true (1)
     // if the command was handled or false (0) for the default implementation. See
@@ -4005,6 +4144,14 @@ type
     // Returns flags representing the actions supported by the editable node, if
     // any, that the context menu was invoked on.
     get_edit_state_flags: function(self: PCefContextMenuParams): Integer; stdcall;
+
+    // Returns true (1) if the context menu contains items specified by the
+    // renderer process (for example, plugin placeholder or pepper plugin menu
+    // items).
+    is_custom_menu: function(self: PCefContextMenuParams): Integer; stdcall;
+
+    // Returns true (1) if the context menu was invoked from a pepper plugin.
+    is_pepper_menu: function(self: PCefContextMenuParams): Integer; stdcall;
   end;
 
   // Callback structure used for asynchronous continuation of geolocation
@@ -5392,10 +5539,10 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Set the schemes supported by this manager. By default only "http" and
-    // "https" schemes are supported. If |callback| is non-NULL it will be
-    // executed asnychronously on the IO thread after the change has been applied.
-    // Must be called before any cookies are accessed.
+    // Set the schemes supported by this manager. The default schemes ("http",
+    // "https", "ws" and "wss") will always be supported. If |callback| is non-
+    // NULL it will be executed asnychronously on the IO thread after the change
+    // has been applied. Must be called before any cookies are accessed.
     set_supported_schemes: procedure(self: PCefCookieManager;
       schemes: TCefStringList; callback: PCefCompletionCallback); stdcall;
 
@@ -5840,10 +5987,29 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Called on the IO thread to retrieve the cookie manager. If this function
-    // returns NULL the default cookie manager retrievable via
+    // Called on the browser process IO thread to retrieve the cookie manager. If
+    // this function returns NULL the default cookie manager retrievable via
     // cef_request_tContext::get_default_cookie_manager() will be used.
-    get_cookie_manager: function(self: PCefRequestContextHandler): PCefCookieManager; stdcall
+    get_cookie_manager: function(self: PCefRequestContextHandler): PCefCookieManager; stdcall;
+
+    // Called on multiple browser process threads before a plugin instance is
+    // loaded. |mime_type| is the mime type of the plugin that will be loaded.
+    // |plugin_url| is the content URL that the plugin will load and may be NULL.
+    // |top_origin_url| is the URL for the top-level frame that contains the
+    // plugin when loading a specific plugin instance or NULL when building the
+    // initial list of enabled plugins for 'navigator.plugins' JavaScript state.
+    // |plugin_info| includes additional information about the plugin that will be
+    // loaded. |plugin_policy| is the recommended policy. Modify |plugin_policy|
+    // and return true (1) to change the policy. Return false (0) to use the
+    // recommended policy. The default plugin policy can be set at runtime using
+    // the `--plugin-policy=[allow|detect|block]` command-line flag. Decisions to
+    // mark a plugin as disabled by setting |plugin_policy| to
+    // PLUGIN_POLICY_DISABLED may be cached when |top_origin_url| is NULL. To
+    // purge the plugin list cache and potentially trigger new calls to this
+    // function call cef_request_tContext::PurgePluginListCache.
+    on_before_plugin_load: function(self: PCefRequestContextHandler;
+        const mime_type, plugin_url, top_origin_url: PCefString;
+        plugin_info: PCefWebPluginInfo; plugin_policy: PCefPluginPolicy): Integer; stdcall;
   end;
 
   // A request context provides request handling for a set of related browser or
@@ -5913,6 +6079,13 @@ type
     // Clear all registered scheme handler factories. Returns false (0) on error.
     // This function may be called on any thread in the browser process.
     clear_scheme_handler_factories: function(self: PCefRequestContext): Integer; stdcall;
+
+    // Tells all renderer processes associated with this context to throw away
+    // their plugin list cache. If |reload_pages| is true (1) they will also
+    // reload all pages with plugins.
+    // cef_request_tContextHandler::OnBeforePluginLoad may be called to rebuild
+    // the plugin list cache.
+    purge_plugin_list_cache: procedure(self: PCefRequestContext; reload_pages: Integer); stdcall;
   end;
 
   // Structure representing print settings.
@@ -6030,19 +6203,21 @@ type
     // Base structure.
     base: TCefBase;
 
-    ///
+    // Called when printing has started for the specified |browser|. This function
+    // will be called before the other OnPrint*() functions and irrespective of
+    // how printing was initiated (e.g. cef_browser_host_t::print(), JavaScript
+    // window.print() or PDF extension print button).
+    on_print_start: procedure(self: PCefPrintHandler; browser: PCefBrowser); stdcall;
+
     // Synchronize |settings| with client state. If |get_defaults| is true (1)
     // then populate |settings| with the default print settings. Do not keep a
     // reference to |settings| outside of this callback.
-    ///
     on_print_settings: procedure(self: PCefPrintHandler;
         settings: PCefPrintSettings; get_defaults: Integer); stdcall;
 
-    ///
     // Show the print dialog. Execute |callback| once the dialog is dismissed.
     // Return true (1) if the dialog will be displayed or false (0) to cancel the
     // printing immediately.
-    ///
     on_print_dialog: function(self: PCefPrintHandler; has_selection: Integer;
       callback: PCefPrintDialogCallback): Integer; stdcall;
 
@@ -6054,6 +6229,11 @@ type
 
     // Reset client state related to printing.
     on_print_reset: procedure(self: PCefPrintHandler); stdcall;
+
+    // Return the PDF paper size in device units. Used in combination with
+    // cef_browser_host_t::print_to_pdf().
+    get_pdf_paper_size: function(self: PCefPrintHandler;
+      device_units_per_inch: Integer): TCefSize; stdcall;
   end;
 
   // Structure used to represent an entry in navigation history.
@@ -6088,11 +6268,6 @@ type
 
     // Returns true (1) if this navigation includes post data.
     has_post_data: function(self: PCefNavigationEntry): Integer; stdcall;
-
-    // Returns the name of the sub-frame that navigated or an NULL value if the
-    // main frame navigated.
-    // The resulting string must be freed by calling cef_string_userfree_free().
-    get_frame_name: function(self: PCefNavigationEntry): PCefStringUserFree; stdcall;
 
     // Returns the time for the last known successful navigation completion. A
     // navigation may be completed more than once if the page is reloaded. May be
@@ -6176,6 +6351,42 @@ type
     get_pemencoded: function(self: PCefSslInfo): PCefBinaryValue; stdcall;
   end;
 
+  // Structure used for retrieving resources from the resource bundle (*.pak)
+  // files loaded by CEF during startup or via the cef_resource_bundle_tHandler
+  // returned from cef_app_t::GetResourceBundleHandler. See CefSettings for
+  // additional options related to resource bundle loading. The functions of this
+  // structure may be called on any thread unless otherwise indicated.
+  TCefResourceBundle = record
+    // Base structure.
+    base: TCefBase;
+
+    // Returns the localized string for the specified |string_id| or an NULL
+    // string if the value is not found. Include cef_pack_strings.h for a listing
+    // of valid string ID values.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_localized_string: function(self: PCefResourceBundle; string_id: Integer): PCefStringUserFree; stdcall;
+
+    // Retrieves the contents of the specified scale independent |resource_id|. If
+    // the value is found then |data| and |data_size| will be populated and this
+    // function will return true (1). If the value is not found then this function
+    // will return false (0). The returned |data| pointer will remain resident in
+    // memory and should not be freed. Include cef_pack_resources.h for a listing
+    // of valid resource ID values.
+    get_data_resource: function(self: PCefResourceBundle; resource_id: Integer;
+      out data: Pointer; out data_size: NativeUInt): Integer; stdcall;
+
+    // Retrieves the contents of the specified |resource_id| nearest the scale
+    // factor |scale_factor|. Use a |scale_factor| value of SCALE_FACTOR_NONE for
+    // scale independent resources or call GetDataResource instead. If the value
+    // is found then |data| and |data_size| will be populated and this function
+    // will return true (1). If the value is not found then this function will
+    // return false (0). The returned |data| pointer will remain resident in
+    // memory and should not be freed. Include cef_pack_resources.h for a listing
+    // of valid resource ID values.
+     get_data_resource_for_scale: function(self: PCefResourceBundle; resource_id: Integer;
+       scale_factor: TCefScaleFactor; out data: Pointer; out data_size: NativeUInt): Integer; stdcall;
+  end;
+
 //******************************************************************************
 //
 //  I N T E R F A C E S
@@ -6226,6 +6437,13 @@ type
   TCefNavigationEntryVisitorProc = {$IFDEF DELPHI12_UP}reference to{$ENDIF}
     function(const entry: ICefNavigationEntry; current: Boolean; index, total: Integer): Boolean;
 
+  TOnPdfPrintFinishedProc = {$IFDEF DELPHI12_UP}reference to{$ENDIF} procedure(const path: ustring; ok: Boolean);
+
+  ICefPdfPrintCallback = interface(ICefBase)
+  ['{F1CC58E9-2C30-4932-91AE-467C8D8EFB8E}']
+    procedure OnPdfPrintFinished(const path: ustring; ok: Boolean);
+  end;
+
   ICefBrowserHost = interface(ICefBase)
     ['{53AE02FF-EF5D-48C3-A43E-069DA9535424}']
     function GetBrowser: ICefBrowser;
@@ -6243,6 +6461,8 @@ type
       acceptFilters: TStrings; selectedAcceptFilter: Integer; const callback: TCefRunFileDialogCallbackProc);
     procedure StartDownload(const url: ustring);
     procedure Print;
+    procedure PrintToPdf(const path: ustring; settings: PCefPdfPrintSettings; const callback: ICefPdfPrintCallback);
+    procedure PrintToPdfProc(const path: ustring; settings: PCefPdfPrintSettings; const callback: TOnPdfPrintFinishedProc);
     procedure Find(identifier: Integer; const searchText: ustring; forward, matchCase, findNext: Boolean);
     procedure StopFinding(clearSelection: Boolean);
     procedure ShowDevTools(const windowInfo: PCefWindowInfo; const client: ICefClient;
@@ -6875,7 +7095,7 @@ type
 
   ICefResourceBundleHandler = interface(ICefBase)
     ['{09C264FD-7E03-41E3-87B3-4234E82B5EA2}']
-    function GetLocalizedString(messageId: Integer; out stringVal: ustring): Boolean;
+    function GetLocalizedString(stringId: Integer; out stringVal: ustring): Boolean;
     function GetDataResource(resourceId: Integer; out data: Pointer; out dataSize: NativeUInt): Boolean;
   end;
 
@@ -7067,6 +7287,8 @@ type
     function IsEditable: Boolean;
     function IsSpellCheckEnabled: Boolean;
     function GetEditStateFlags: TCefContextMenuEditStateFlags;
+    function IsCustomMenu: Boolean;
+    function IsPepperMenu: Boolean;
 
     property XCoord: Integer read GetXCoord;
     property YCoord: Integer read GetYCoord;
@@ -7293,8 +7515,6 @@ type
     function OnQuotaRequest(const browser: ICefBrowser;
       const originUrl: ustring; newSize: Int64; const callback: ICefRequestCallback): Boolean;
     procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean);
-    function OnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
-      const info: ICefWebPluginInfo): Boolean;
     function OnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
       const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean;
     procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring);
@@ -7307,6 +7527,7 @@ type
     procedure OnAddressChange(const browser: ICefBrowser; const frame: ICefFrame; const url: ustring);
     procedure OnTitleChange(const browser: ICefBrowser; const title: ustring);
     procedure OnFaviconUrlChange(const browser: ICefBrowser; icon_urls: TStrings);
+    procedure OnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean);
     function OnTooltip(const browser: ICefBrowser; var text: ustring): Boolean;
     procedure OnStatusMessage(const browser: ICefBrowser; const value: ustring);
     function OnConsoleMessage(const browser: ICefBrowser; const message, source: ustring; line: Integer): Boolean;
@@ -7339,10 +7560,19 @@ type
     procedure OnDialogClosed(const browser: ICefBrowser);
   end;
 
+  ICefRunContextMenuCallback = interface(ICefBase)
+  ['{44C3C6E3-B64D-4F6E-A318-4A0F3A72EB00}']
+    procedure Cont(commandId: Integer; eventFlags: TCefEventFlags);
+    procedure Cancel;
+  end;
+
   ICefContextMenuHandler = interface(ICefBase)
   ['{C2951895-4087-49D5-BA18-4D9BA4F5EDD7}']
     procedure OnBeforeContextMenu(const browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; const model: ICefMenuModel);
+    function RunContextMenu(const browser: ICefBrowser; const frame: ICefFrame;
+      const params: ICefContextMenuParams; const model: ICefMenuModel;
+      const callback: ICefRunContextMenuCallback): Boolean;
     function OnContextMenuCommand(const browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; commandId: Integer;
       eventFlags: TCefEventFlags): Boolean;
@@ -7496,6 +7726,8 @@ type
   ICefRequestContextHandler = interface(ICefBase)
     ['{76EB1FA7-78DF-4FD5-ABB3-1CDD3E73A140}']
     function GetCookieManager: ICefCookieManager;
+    function OnBeforePluginLoad(const mimeType, pluginUrl, topOriginUrl: ustring;
+      const pluginInfo: ICefWebPluginInfo; pluginPolicy: PCefPluginPolicy): Boolean;
   end;
 
   ICefRequestContext = interface(ICefBase)
@@ -7510,6 +7742,7 @@ type
     function RegisterSchemeHandlerFactory(const schemeName, domainName: ustring;
         const factory: ICefSchemeHandlerFactory): Boolean;
     function ClearSchemeHandlerFactories: Boolean;
+    procedure PurgePluginListCache(reloadPages: Boolean);
   end;
 
   ICefPrintSettings = Interface(ICefBase)
@@ -7560,7 +7793,6 @@ type
     function GetTitle: ustring;
     function GetTransitionType: TCefTransitionType;
     function HasPostData: Boolean;
-    function GetFrameName: ustring;
     function GetCompletionTime: TDateTime;
     function GetHttpStatusCode: Integer;
 
@@ -7569,7 +7801,6 @@ type
     property OriginalUrl: ustring read GetOriginalUrl;
     property Title: ustring read GetTitle;
     property TransitionType: TCefTransitionType read GetTransitionType;
-    property FrameName: ustring read GetFrameName;
     property CompletionTime: TDateTime read GetCompletionTime;
     property HttpStatusCode: Integer read GetHttpStatusCode;
   end;
@@ -7596,6 +7827,15 @@ type
     function GetValidExpiry: TCefTime;
     function GetDerEncoded: ICefBinaryValue;
     function GetPemEncoded: ICefBinaryValue;
+  end;
+
+  ICefResourceBundle = interface(ICefBase)
+  ['{3213CF97-C854-452B-B615-39192F8D07DC}']
+    function GetLocalizedString(stringId: Integer): ustring;
+    function GetDataResource(resourceId: Integer;
+      out data: Pointer; out dataSize: NativeUInt): Boolean;
+    function GetDataResourceForScale(resourceId: Integer; scaleFactor: TCefScaleFactor;
+      out data: Pointer; out dataSize: NativeUInt): Boolean;
   end;
 
 /////////////////////////////////////////
@@ -7653,6 +7893,8 @@ type
       acceptFilters: TStrings; selectedAcceptFilter: Integer; const callback: TCefRunFileDialogCallbackProc);
     procedure StartDownload(const url: ustring);
     procedure Print;
+    procedure PrintToPdf(const path: ustring; settings: PCefPdfPrintSettings; const callback: ICefPdfPrintCallback);
+    procedure PrintToPdfProc(const path: ustring; settings: PCefPdfPrintSettings; const callback: TOnPdfPrintFinishedProc);
     procedure Find(identifier: Integer; const searchText: ustring; forward, matchCase, findNext: Boolean);
     procedure StopFinding(clearSelection: Boolean);
     procedure ShowDevTools(const windowInfo: PCefWindowInfo; const client: ICefClient;
@@ -8062,8 +8304,6 @@ type
       newSize: Int64; const callback: ICefRequestCallback): Boolean; virtual;
     function GetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager; virtual;
     procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean); virtual;
-    function OnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
-      const info: ICefWebPluginInfo): Boolean; virtual;
     function OnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
       const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
     procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
@@ -8078,6 +8318,7 @@ type
     procedure OnAddressChange(const browser: ICefBrowser; const frame: ICefFrame; const url: ustring); virtual;
     procedure OnTitleChange(const browser: ICefBrowser; const title: ustring); virtual;
     procedure OnFaviconUrlChange(const browser: ICefBrowser; iconUrls: TStrings); virtual;
+    procedure OnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean); virtual;
     function OnTooltip(const browser: ICefBrowser; var text: ustring): Boolean; virtual;
     procedure OnStatusMessage(const browser: ICefBrowser; const value: ustring); virtual;
     function OnConsoleMessage(const browser: ICefBrowser; const message, source: ustring; line: Integer): Boolean; virtual;
@@ -8122,6 +8363,9 @@ type
   protected
     procedure OnBeforeContextMenu(const browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; const model: ICefMenuModel); virtual;
+    function RunContextMenu(const browser: ICefBrowser; const frame: ICefFrame;
+      const params: ICefContextMenuParams; const model: ICefMenuModel;
+      const callback: ICefRunContextMenuCallback): Boolean; virtual;
     function OnContextMenuCommand(const browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; commandId: Integer;
       eventFlags: TCefEventFlags): Boolean; virtual;
@@ -8548,40 +8792,45 @@ type
 
   TCefResourceBundleHandlerOwn = class(TCefBaseOwn, ICefResourceBundleHandler)
   protected
-
-    function GetDataResource(resourceId: Integer; out data: Pointer;
-
+    function GetDataResource(stringId: Integer; out data: Pointer;
       out dataSize: NativeUInt): Boolean; virtual; abstract;
-
     function GetLocalizedString(messageId: Integer;
       out stringVal: ustring): Boolean; virtual; abstract;
-
+    function GetDataResourceForScale(resourceId: Integer;
+      scaleFactor: TCefScaleFactor; out data: Pointer;
+      dataSize: NativeUInt): Boolean; virtual; abstract;
   public
-
     constructor Create; virtual;
   end;
-
-
 
  TGetDataResource = {$IFDEF DELPHI12_UP}reference to{$ENDIF}function(
    resourceId: Integer; out data: Pointer; out dataSize: NativeUInt): Boolean;
 
  TGetLocalizedString = {$IFDEF DELPHI12_UP}reference to{$ENDIF}function(
-   messageId: Integer; out stringVal: ustring): Boolean;
+   stringId: Integer; out stringVal: ustring): Boolean;
+
+ TGetDataResourceForScale = {$IFDEF DELPHI12_UP}reference to{$ENDIF}function(
+   resourceId: Integer; scaleFactor: TCefScaleFactor; out data: Pointer;
+   out dataSize: NativeUInt): Boolean;
 
   TCefFastResourceBundle = class(TCefResourceBundleHandlerOwn)
   private
     FGetDataResource: TGetDataResource;
     FGetLocalizedString: TGetLocalizedString;
+    FGetDataResourceForScale: TGetDataResourceForScale;
   protected
     function GetDataResource(resourceId: Integer; out data: Pointer;
       out dataSize: NativeUInt): Boolean; override;
-
-    function GetLocalizedString(messageId: Integer;
+    function GetLocalizedString(stringId: Integer;
       out stringVal: ustring): Boolean; override;
+    function GetDataResourceForScale(resourceId: Integer;
+      scaleFactor: TCefScaleFactor; out data: Pointer;
+      dataSize: NativeUInt): Boolean; override;
   public
-    constructor Create(AGetDataResource: TGetDataResource;
-      AGetLocalizedString: TGetLocalizedString); reintroduce;
+    constructor Create(
+      AGetDataResource: TGetDataResource;
+      AGetLocalizedString: TGetLocalizedString;
+      AGetDataResourceForScale: TGetDataResourceForScale); reintroduce;
   end;
 
   TCefAppOwn = class(TCefBaseOwn, ICefApp)
@@ -8815,6 +9064,8 @@ type
     function IsEditable: Boolean;
     function IsSpellCheckEnabled: Boolean;
     function GetEditStateFlags: TCefContextMenuEditStateFlags;
+    function IsCustomMenu: Boolean;
+    function IsPepperMenu: Boolean;
   public
     class function UnWrap(data: Pointer): ICefContextMenuParams;
   end;
@@ -9200,6 +9451,7 @@ type
     function RegisterSchemeHandlerFactory(const schemeName, domainName: ustring;
         const factory: ICefSchemeHandlerFactory): Boolean;
     function ClearSchemeHandlerFactories: Boolean;
+    procedure PurgePluginListCache(reloadPages: Boolean);
   public
     class function UnWrap(data: Pointer): ICefRequestContext;
     class function Global: ICefRequestContext;
@@ -9212,6 +9464,8 @@ type
   TCefRequestContextHandlerRef = class(TCefBaseRef, ICefRequestContextHandler)
   protected
     function GetCookieManager: ICefCookieManager;
+    function OnBeforePluginLoad(const mimeType, pluginUrl, topOriginUrl: ustring;
+      const pluginInfo: ICefWebPluginInfo; pluginPolicy: PCefPluginPolicy): Boolean;
   public
     class function UnWrap(data: Pointer): ICefRequestContextHandler;
   end;
@@ -9219,6 +9473,8 @@ type
   TCefRequestContextHandlerOwn = class(TCefBaseOwn, ICefRequestContextHandler)
   protected
     function GetCookieManager: ICefCookieManager; virtual;
+    function OnBeforePluginLoad(const mimeType, pluginUrl, topOriginUrl: ustring;
+      const pluginInfo: ICefWebPluginInfo; pluginPolicy: PCefPluginPolicy): Boolean; virtual;
   public
     constructor Create; virtual;
   end;
@@ -9277,7 +9533,6 @@ type
     function GetTitle: ustring;
     function GetTransitionType: TCefTransitionType;
     function HasPostData: Boolean;
-    function GetFrameName: ustring;
     function GetCompletionTime: TDateTime;
     function GetHttpStatusCode: Integer;
   public
@@ -9319,6 +9574,7 @@ type
   end;
 
   TCefSslInfoRef = class(TCefBaseRef, ICefSslInfo)
+  protected
     function GetSubject: ICefSslCertPrincipal;
     function GetIssuer: ICefSslCertPrincipal;
     function GetSerialNumber: ICefBinaryValue;
@@ -9328,6 +9584,42 @@ type
     function GetPemEncoded: ICefBinaryValue;
   public
     class function UnWrap(data: Pointer): ICefSslInfo;
+  end;
+
+  TCefPdfPrintCallbackOwn = class(TCefBaseOwn, ICefPdfPrintCallback)
+  protected
+    procedure OnPdfPrintFinished(const path: ustring; ok: Boolean); virtual; abstract;
+  public
+    constructor Create; virtual;
+  end;
+
+  TCefFastPdfPrintCallback = class(TCefPdfPrintCallbackOwn)
+  private
+    FProc: TOnPdfPrintFinishedProc;
+  protected
+    procedure OnPdfPrintFinished(const path: ustring; ok: Boolean); override;
+  public
+    constructor Create(const proc: TOnPdfPrintFinishedProc); reintroduce;
+  end;
+
+  TCefRunContextMenuCallbackRef = class(TCefBaseRef, ICefRunContextMenuCallback)
+  protected
+    procedure Cont(commandId: Integer; eventFlags: TCefEventFlags);
+    procedure Cancel;
+  public
+    class function UnWrap(data: Pointer): ICefRunContextMenuCallback;
+  end;
+
+  TCefResourceBundleRef = class(TCefBaseRef, ICefResourceBundle)
+  protected
+    function GetLocalizedString(stringId: Integer): ustring;
+    function GetDataResource(resourceId: Integer;
+      out data: Pointer; out dataSize: NativeUInt): Boolean;
+    function GetDataResourceForScale(resourceId: Integer; scaleFactor: TCefScaleFactor;
+      out data: Pointer; out dataSize: NativeUInt): Boolean;
+  public
+    class function UnWrap(data: Pointer): ICefResourceBundle;
+    class function Global: ICefResourceBundle;
   end;
 
   ECefException = class(Exception)
@@ -9380,6 +9672,8 @@ procedure CefRunMessageLoop;
 procedure CefQuitMessageLoop;
 procedure CefSetOsModalLoop(loop: Boolean);
 {$ENDIF}
+procedure CefEnableHighDpiSupport;
+
 procedure CefShutDown;
 
 function CefRegisterSchemeHandlerFactory(const SchemeName, HostName: ustring;
@@ -9703,10 +9997,13 @@ var
 
 
   // Set to true (1) before calling Windows APIs like TrackPopupMenu that enter a
-
   // modal message loop. Set to false (0) after exiting the modal message loop.
   cef_set_osmodal_loop: procedure(osModalLoop: Integer); {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
+  // Call during process startup to enable High-DPI support on Windows 7 or newer.
+  // Older versions of Windows should be left DPI-unaware because they do not
+  // support DirectWrite and GDI fonts are kerned very badly.
+  cef_enable_highdpi_support: procedure; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // This function should be called from the application entry point function to
   // execute a secondary process. It can be used to run secondary processes from
@@ -10382,6 +10679,11 @@ var
   cef_drag_data_create: function(): PCefDragData;
   {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
+  // Returns the global resource bundle instance.
+  cef_resource_bundle_get_global: function(): PCefResourceBundle;
+  {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+
 var
   LibHandle: THandle = 0;
   CefIsMainProcess: Boolean = False;
@@ -10507,6 +10809,7 @@ begin
     cef_run_message_loop := GetProcAddress(LibHandle, 'cef_run_message_loop');
     cef_quit_message_loop := GetProcAddress(LibHandle, 'cef_quit_message_loop');
     cef_set_osmodal_loop := GetProcAddress(LibHandle, 'cef_set_osmodal_loop');
+    cef_enable_highdpi_support := GetProcAddress(LibHandle, 'cef_enable_highdpi_support');
     cef_register_extension := GetProcAddress(LibHandle, 'cef_register_extension');
     cef_register_scheme_handler_factory := GetProcAddress(LibHandle, 'cef_register_scheme_handler_factory');
     cef_clear_scheme_handler_factories := GetProcAddress(LibHandle, 'cef_clear_scheme_handler_factories');
@@ -10638,6 +10941,8 @@ begin
 
     cef_drag_data_create := GetProcAddress(LibHandle, 'cef_drag_data_create');
 
+    cef_resource_bundle_get_global := GetProcAddress(LibHandle, 'cef_resource_bundle_get_global');
+
     if not (
       Assigned(cef_string_wide_set) and
       Assigned(cef_string_utf8_set) and
@@ -10684,6 +10989,7 @@ begin
       Assigned(cef_run_message_loop) and
       Assigned(cef_quit_message_loop) and
       Assigned(cef_set_osmodal_loop) and
+      Assigned(cef_enable_highdpi_support) and
       Assigned(cef_register_extension) and
       Assigned(cef_register_scheme_handler_factory) and
       Assigned(cef_clear_scheme_handler_factories) and
@@ -10789,7 +11095,8 @@ begin
       Assigned(cef_trace_event_async_step_past) and
       Assigned(cef_trace_event_async_end) and
       Assigned(cef_print_settings_create) and
-      Assigned(cef_drag_data_create)
+      Assigned(cef_drag_data_create) and
+      Assigned(cef_resource_bundle_get_global)
     ) then raise ECefException.Create('Invalid CEF Library version');
 
     FillChar(settings, SizeOf(settings), 0);
@@ -10859,6 +11166,11 @@ begin
   cef_set_osmodal_loop(Ord(loop));
 end;
 {$ENDIF}
+
+procedure CefEnableHighDpiSupport;
+begin
+  cef_enable_highdpi_support();
+end;
 
 procedure CefShutDown;
 begin
@@ -11710,14 +12022,6 @@ begin
   allow_os_execution^ := Ord(allow);
 end;
 
-function cef_request_handler_on_before_plugin_load(self: PCefRequestHandler; browser: PCefBrowser;
-  const url, policy_url: PCefString; info: PCefWebPluginInfo): Integer; stdcall;
-begin
-  with TCefRequestHandlerOwn(CefGetObject(self)) do
-    Result := Ord(OnBeforePluginLoad(TCefBrowserRef.UnWrap(browser),
-      CefString(url), CefString(policy_url), TCefWebPluginInfoRef.UnWrap(info)));
-end;
-
 function cef_request_handler_on_certificate_error(self: PCefRequestHandler;
   browser: PCefBrowser; cert_error: TCefErrorcode; const request_url: PCefString;
   ssl_info: PCefSslInfo; callback: PCefRequestCallback): Integer; stdcall;
@@ -11789,6 +12093,13 @@ begin
   finally
     list.Free;
   end;
+end;
+
+procedure cef_display_handler_on_fullscreen_mode_change(self: PCefDisplayHandler;
+  browser: PCefBrowser; fullscreen: Integer); stdcall;
+begin
+  with TCefDisplayHandlerOwn(CefGetObject(self)) do
+    OnFullScreenModeChange(TCefBrowserRef.UnWrap(browser), fullscreen <> 0);
 end;
 
 function cef_display_handler_on_tooltip(self: PCefDisplayHandler;
@@ -11902,7 +12213,6 @@ begin
     OnDialogClosed(TCefBrowserRef.UnWrap(browser));
 end;
 
-
 { cef_context_menu_handler }
 
 procedure cef_context_menu_handler_on_before_context_menu(self: PCefContextMenuHandler;
@@ -11912,6 +12222,16 @@ begin
   with TCefContextMenuHandlerOwn(CefGetObject(self)) do
     OnBeforeContextMenu(TCefBrowserRef.UnWrap(browser), TCefFrameRef.UnWrap(frame),
       TCefContextMenuParamsRef.UnWrap(params), TCefMenuModelRef.UnWrap(model));
+end;
+
+function cef_context_menu_handler_run_context_menu(self: PCefContextMenuHandler;
+  browser: PCefBrowser; frame: PCefFrame; params: PCefContextMenuParams;
+  model: PCefMenuModel; callback: PCefRunContextMenuCallback): Integer; stdcall;
+begin
+  with TCefContextMenuHandlerOwn(CefGetObject(self)) do
+    Result := Ord(RunContextMenu(TCefBrowserRef.UnWrap(browser), TCefFrameRef.UnWrap(frame),
+      TCefContextMenuParamsRef.UnWrap(params), TCefMenuModelRef.UnWrap(model),
+      TCefRunContextMenuCallbackRef.UnWrap(callback)));
 end;
 
 function cef_context_menu_handler_on_context_menu_command(self: PCefContextMenuHandler;
@@ -12112,12 +12432,12 @@ end;
 { cef_resource_bundle_handler }
 
 function cef_resource_bundle_handler_get_localized_string(self: PCefResourceBundleHandler;
-  message_id: Integer; string_val: PCefString): Integer; stdcall;
+  string_id: Integer; string_val: PCefString): Integer; stdcall;
 var
   str: ustring;
 begin
   Result := Ord(TCefResourceBundleHandlerOwn(CefGetObject(self)).
-    GetLocalizedString(message_id, str));
+    GetLocalizedString(string_id, str));
   if Result <> 0 then
     string_val^ := CefString(str);
 end;
@@ -12127,6 +12447,14 @@ function cef_resource_bundle_handler_get_data_resource(self: PCefResourceBundleH
 begin
   Result := Ord(TCefResourceBundleHandlerOwn(CefGetObject(self)).
     GetDataResource(resource_id, data, data_size));
+end;
+
+function cef_resource_bundle_handler_get_data_resource_for_scale(
+  self: PCefResourceBundleHandler; resource_id: Integer; scale_factor: TCefScaleFactor;
+  out data: Pointer; data_size: NativeUInt): Integer; stdcall;
+begin
+  Result := Ord(TCefResourceBundleHandlerOwn(CefGetObject(self)).
+    GetDataResourceForScale(resource_id, scale_factor, data, data_size));
 end;
 
 { cef_app }
@@ -12600,6 +12928,15 @@ begin
     Result := CefGetData(GetCookieManager());
 end;
 
+function cef_request_context_handler_on_before_plugin_load(self: PCefRequestContextHandler;
+  const mime_type, plugin_url, top_origin_url: PCefString;
+  plugin_info: PCefWebPluginInfo; plugin_policy: PCefPluginPolicy): Integer; stdcall;
+begin
+  with TCefRequestContextHandlerOwn(CefGetObject(self)) do
+    Result := Ord(OnBeforePluginLoad(CefString(mime_type), CefString(plugin_url),
+      CefString(top_origin_url), TCefWebPluginInfoRef.UnWrap(plugin_info), plugin_policy));
+end;
+
 {  cef_write_handler_ }
 
 function cef_write_handler_write(self: PCefWriteHandler; const ptr: Pointer;
@@ -12658,6 +12995,15 @@ begin
   with TCefDeleteCookiesCallbackOwn(CefGetObject(self)) do
     OnComplete(num_deleted);
 end;
+
+{ cef_pdf_print_callback }
+
+procedure cef_pdf_print_callback_on_pdf_print_finished(self: PCefPdfPrintCallback; const path: PCefString; ok: Integer); stdcall;
+begin
+  with TCefPdfPrintCallbackOwn(CefGetObject(self)) do
+    OnPdfPrintFinished(CefString(path), ok <> 0);
+end;
+
 
 { TCefBaseOwn }
 
@@ -15822,7 +16168,6 @@ begin
     get_auth_credentials := cef_request_handler_get_auth_credentials;
     on_quota_request := cef_request_handler_on_quota_request;
     on_protocol_execution := cef_request_handler_on_protocol_execution;
-    on_before_plugin_load := cef_request_handler_on_before_plugin_load;
     on_certificate_error := cef_request_handler_on_certificate_error;
     on_plugin_crashed := cef_request_handler_on_plugin_crashed;
     on_render_view_ready := cef_request_handler_on_render_view_ready;
@@ -15846,12 +16191,6 @@ end;
 function TCefRequestHandlerOwn.OnBeforeBrowse(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest;
   isRedirect: Boolean): Boolean;
-begin
-  Result := False;
-end;
-
-function TCefRequestHandlerOwn.OnBeforePluginLoad(const browser: ICefBrowser;
-  const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean;
 begin
   Result := False;
 end;
@@ -15936,6 +16275,7 @@ begin
     on_address_change := cef_display_handler_on_address_change;
     on_title_change := cef_display_handler_on_title_change;
     on_favicon_urlchange := cef_display_handler_on_favicon_urlchange;
+    on_fullscreen_mode_change := cef_display_handler_on_fullscreen_mode_change;
     on_tooltip := cef_display_handler_on_tooltip;
     on_status_message := cef_display_handler_on_status_message;
     on_console_message := cef_display_handler_on_console_message;
@@ -15956,6 +16296,12 @@ end;
 
 procedure TCefDisplayHandlerOwn.OnFaviconUrlChange(const browser: ICefBrowser;
   iconUrls: TStrings);
+begin
+
+end;
+
+procedure TCefDisplayHandlerOwn.OnFullScreenModeChange(
+  const browser: ICefBrowser; fullscreen: Boolean);
 begin
 
 end;
@@ -16081,6 +16427,7 @@ begin
   with PCefContextMenuHandler(FData)^ do
   begin
     on_before_context_menu := cef_context_menu_handler_on_before_context_menu;
+    run_context_menu := cef_context_menu_handler_run_context_menu;
     on_context_menu_command := cef_context_menu_handler_on_context_menu_command;
     on_context_menu_dismissed := cef_context_menu_handler_on_context_menu_dismissed;
   end;
@@ -16105,6 +16452,14 @@ procedure TCefContextMenuHandlerOwn.OnContextMenuDismissed(
   const browser: ICefBrowser; const frame: ICefFrame);
 begin
 
+end;
+
+function TCefContextMenuHandlerOwn.RunContextMenu(const browser: ICefBrowser;
+  const frame: ICefFrame; const params: ICefContextMenuParams;
+  const model: ICefMenuModel;
+  const callback: ICefRunContextMenuCallback): Boolean;
+begin
+  Result := False;
 end;
 
 { TCefV8ExceptionRef }
@@ -16165,17 +16520,19 @@ begin
   begin
     get_localized_string := cef_resource_bundle_handler_get_localized_string;
     get_data_resource := cef_resource_bundle_handler_get_data_resource;
+    get_data_resource_for_scale := cef_resource_bundle_handler_get_data_resource_for_scale;
   end;
 end;
 
 { TCefFastResourceBundle }
 
 constructor TCefFastResourceBundle.Create(AGetDataResource: TGetDataResource;
-  AGetLocalizedString: TGetLocalizedString);
+  AGetLocalizedString: TGetLocalizedString; AGetDataResourceForScale: TGetDataResourceForScale);
 begin
   inherited Create;
   FGetDataResource := AGetDataResource;
   FGetLocalizedString := AGetLocalizedString;
+  FGetDataResourceForScale := AGetDataResourceForScale;
 end;
 
 function TCefFastResourceBundle.GetDataResource(resourceId: Integer;
@@ -16186,11 +16543,20 @@ begin
     Result := False;
 end;
 
-function TCefFastResourceBundle.GetLocalizedString(messageId: Integer;
+function TCefFastResourceBundle.GetDataResourceForScale(resourceId: Integer;
+  scaleFactor: TCefScaleFactor; out data: Pointer;
+  dataSize: NativeUInt): Boolean;
+begin
+  if Assigned(FGetDataResourceForScale) then
+    Result := FGetDataResourceForScale(resourceId, scaleFactor, data, dataSize) else
+    Result := False;
+end;
+
+function TCefFastResourceBundle.GetLocalizedString(stringId: Integer;
   out stringVal: ustring): Boolean;
 begin
   if Assigned(FGetLocalizedString) then
-    Result := FGetLocalizedString(messageId, stringVal) else
+    Result := FGetLocalizedString(stringId, stringVal) else
     Result := False;
 end;
 
@@ -16470,6 +16836,21 @@ end;
 procedure TCefBrowserHostRef.Print;
 begin
   PCefBrowserHost(FData).print(FData);
+end;
+
+procedure TCefBrowserHostRef.PrintToPdf(const path: ustring;
+  settings: PCefPdfPrintSettings; const callback: ICefPdfPrintCallback);
+var
+  str: TCefString;
+begin
+  str := CefString(path);
+  PCefBrowserHost(FData).print_to_pdf(FData, @str, settings, CefGetData(callback));
+end;
+
+procedure TCefBrowserHostRef.PrintToPdfProc(const path: ustring;
+  settings: PCefPdfPrintSettings; const callback: TOnPdfPrintFinishedProc);
+begin
+  PrintToPdf(path, settings, TCefFastPdfPrintCallback.Create(callback));
 end;
 
 procedure TCefBrowserHostRef.ReplaceMisspelling(const word: ustring);
@@ -17270,9 +17651,19 @@ begin
   Result := PCefContextMenuParams(FData).get_ycoord(PCefContextMenuParams(FData));
 end;
 
+function TCefContextMenuParamsRef.IsCustomMenu: Boolean;
+begin
+  Result := PCefContextMenuParams(FData).is_custom_menu(PCefContextMenuParams(FData)) <> 0;
+end;
+
 function TCefContextMenuParamsRef.IsEditable: Boolean;
 begin
   Result := PCefContextMenuParams(FData).is_editable(PCefContextMenuParams(FData)) <> 0;
+end;
+
+function TCefContextMenuParamsRef.IsPepperMenu: Boolean;
+begin
+  Result := PCefContextMenuParams(FData).is_pepper_menu(PCefContextMenuParams(FData)) <> 0;
 end;
 
 function TCefContextMenuParamsRef.IsSpellCheckEnabled: Boolean;
@@ -19079,6 +19470,11 @@ begin
   Result := UnWrap(cef_request_context_create_context(settings, CefGetData(handler)));
 end;
 
+procedure TCefRequestContextRef.PurgePluginListCache(reloadPages: Boolean);
+begin
+  PCefRequestContext(FData).purge_plugin_list_cache(FData, Ord(reloadPages));
+end;
+
 function TCefRequestContextRef.RegisterSchemeHandlerFactory(const schemeName,
   domainName: ustring; const factory: ICefSchemeHandlerFactory): Boolean;
 var
@@ -19109,6 +19505,19 @@ begin
   Result := TCefCookieManagerRef.UnWrap(PCefRequestContextHandler(FData).get_cookie_manager(FData));
 end;
 
+function TCefRequestContextHandlerRef.OnBeforePluginLoad(const mimeType,
+  pluginUrl, topOriginUrl: ustring; const pluginInfo: ICefWebPluginInfo;
+  pluginPolicy: PCefPluginPolicy): Boolean;
+var
+  mt, pu, ou: TCefString;
+begin
+  mt := CefString(mimeType);
+  pu:= CefString(pluginUrl);
+  ou := CefString(topOriginUrl);
+  Result := PCefRequestContextHandler(FData).on_before_plugin_load(
+    FData, @mt, @pu, @ou, CefGetData(pluginInfo), pluginPolicy) <> 0;
+end;
+
 class function TCefRequestContextHandlerRef.UnWrap(
   data: Pointer): ICefRequestContextHandler;
 begin
@@ -19123,12 +19532,22 @@ constructor TCefRequestContextHandlerOwn.Create;
 begin
   CreateData(SizeOf(TCefRequestContextHandler), False);
   with PCefRequestContextHandler(FData)^ do
+  begin
     get_cookie_manager := cef_request_context_handler_get_cookie_manager;
+    on_before_plugin_load := cef_request_context_handler_on_before_plugin_load;
+  end;
 end;
 
 function TCefRequestContextHandlerOwn.GetCookieManager: ICefCookieManager;
 begin
   Result:= nil;
+end;
+
+function TCefRequestContextHandlerOwn.OnBeforePluginLoad(const mimeType,
+  pluginUrl, topOriginUrl: ustring; const pluginInfo: ICefWebPluginInfo;
+  pluginPolicy: PCefPluginPolicy): Boolean;
+begin
+  Result := False;
 end;
 
 { TCefFastRequestContextHandler }
@@ -19419,11 +19838,6 @@ end;
 function TCefNavigationEntryRef.HasPostData: Boolean;
 begin
   Result := PCefNavigationEntry(FData).has_post_data(FData) <> 0;
-end;
-
-function TCefNavigationEntryRef.GetFrameName: ustring;
-begin
-  Result := CefStringFreeAndGet(PCefNavigationEntry(FData).get_frame_name(FData));
 end;
 
 function TCefNavigationEntryRef.GetCompletionTime: TDateTime;
@@ -19811,6 +20225,85 @@ class function TCefSslInfoRef.UnWrap(data: Pointer): ICefSslInfo;
 begin
   if data <> nil then
     Result := Create(data) as ICefSslInfo else
+    Result := nil;
+end;
+
+{ TCefPdfPrintCallbackOwn }
+
+constructor TCefPdfPrintCallbackOwn.Create;
+begin
+  CreateData(SizeOf(TCefPdfPrintCallback), False);
+  with PCefPdfPrintCallback(FData)^ do
+    on_pdf_print_finished := cef_pdf_print_callback_on_pdf_print_finished;
+end;
+
+{ TCefFastPdfPrintCallback }
+
+constructor TCefFastPdfPrintCallback.Create(
+  const proc: TOnPdfPrintFinishedProc);
+begin
+  FProc := proc;
+  inherited Create;
+end;
+
+procedure TCefFastPdfPrintCallback.OnPdfPrintFinished(const path: ustring;
+  ok: Boolean);
+begin
+  FProc(path, ok);
+end;
+
+{ TCefRunContextMenuCallbackRef }
+
+procedure TCefRunContextMenuCallbackRef.Cancel;
+begin
+  PCefRunContextMenuCallback(FData).cancel(FData);
+end;
+
+procedure TCefRunContextMenuCallbackRef.Cont(commandId: Integer;
+  eventFlags: TCefEventFlags);
+begin
+  PCefRunContextMenuCallback(FData).cont(FData, commandId, eventFlags);
+end;
+
+class function TCefRunContextMenuCallbackRef.UnWrap(
+  data: Pointer): ICefRunContextMenuCallback;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefRunContextMenuCallback else
+    Result := nil;
+end;
+
+{ TCefResourceBundleRef }
+
+function TCefResourceBundleRef.GetDataResource(resourceId: Integer;
+  out data: Pointer; out dataSize: NativeUInt): Boolean;
+begin
+  Result := PCefResourceBundle(FData).get_data_resource(FData, resourceId,
+    data, dataSize) <> 0;
+end;
+
+function TCefResourceBundleRef.GetDataResourceForScale(resourceId: Integer;
+  scaleFactor: TCefScaleFactor; out data: Pointer;
+  out dataSize: NativeUInt): Boolean;
+begin
+  Result := PCefResourceBundle(FData).get_data_resource_for_scale(FData,
+    resourceId, scaleFactor, data, dataSize) <> 0;
+end;
+
+function TCefResourceBundleRef.GetLocalizedString(stringId: Integer): ustring;
+begin
+  Result := CefStringFreeAndGet(PCefResourceBundle(FData).get_localized_string(FData, stringId));
+end;
+
+class function TCefResourceBundleRef.Global: ICefResourceBundle;
+begin
+  Result := UnWrap(cef_resource_bundle_get_global());
+end;
+
+class function TCefResourceBundleRef.UnWrap(data: Pointer): ICefResourceBundle;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefResourceBundle else
     Result := nil;
 end;
 

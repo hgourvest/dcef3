@@ -74,6 +74,7 @@ type
     FOnAddressChange: TOnAddressChange;
     FOnTitleChange: TOnTitleChange;
     FOnFavIconUrlChange: TOnFavIconUrlChange;
+    FOnFullScreenModeChange: TOnFullScreenModeChange;
     FOnTooltip: TOnTooltip;
     FOnStatusMessage: TOnStatusMessage;
     FOnConsoleMessage: TOnConsoleMessage;
@@ -101,7 +102,6 @@ type
     FOnGetAuthCredentials: TOnGetAuthCredentials;
     FOnQuotaRequest: TOnQuotaRequest;
     FOnProtocolExecution: TOnProtocolExecution;
-    FOnBeforePluginLoad: TOnBeforePluginLoad;
     FOnCertificateError: TOnCertificateError;
     FOnPluginCrashed: TOnPluginCrashed;
     FOnRenderViewReady: TOnRenderViewReady;
@@ -154,6 +154,7 @@ type
     procedure doOnAddressChange(const browser: ICefBrowser; const frame: ICefFrame; const url: ustring); virtual;
     procedure doOnTitleChange(const browser: ICefBrowser; const title: ustring); virtual;
     procedure doOnFaviconUrlChange(const browser: ICefBrowser; iconUrls: TStrings); virtual;
+    procedure doOnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean); virtual;
     function doOnTooltip(const browser: ICefBrowser; var text: ustring): Boolean; virtual;
     procedure doOnStatusMessage(const browser: ICefBrowser; const value: ustring); virtual;
     function doOnConsoleMessage(const browser: ICefBrowser; const message, source: ustring; line: Integer): Boolean; virtual;
@@ -208,8 +209,6 @@ type
       newSize: Int64; const callback: ICefRequestCallback): Boolean; virtual;
     procedure doOnProtocolExecution(const browser: ICefBrowser;
       const url: ustring; out allowOsExecution: Boolean); virtual;
-    function doOnBeforePluginLoad(const browser: ICefBrowser; const url,
-      policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; virtual;
     function doOnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
       const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
     procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
@@ -263,6 +262,7 @@ type
     property OnAddressChange: TOnAddressChange read FOnAddressChange write FOnAddressChange;
     property OnTitleChange: TOnTitleChange read FOnTitleChange write FOnTitleChange;
     property OnFavIconUrlChange: TOnFavIconUrlChange read FOnFavIconUrlChange write FOnFavIconUrlChange;
+    property OnFullScreenModeChange: TOnFullScreenModeChange read FOnFullScreenModeChange write FOnFullScreenModeChange;
     property OnTooltip: TOnTooltip read FOnTooltip write FOnTooltip;
     property OnStatusMessage: TOnStatusMessage read FOnStatusMessage write FOnStatusMessage;
     property OnConsoleMessage: TOnConsoleMessage read FOnConsoleMessage write FOnConsoleMessage;
@@ -290,7 +290,6 @@ type
     property OnGetAuthCredentials: TOnGetAuthCredentials read FOnGetAuthCredentials write FOnGetAuthCredentials;
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest write FOnQuotaRequest;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
-    property OnBeforePluginLoad: TOnBeforePluginLoad read FOnBeforePluginLoad write FOnBeforePluginLoad;
     property OnCertificateError: TOnCertificateError read FOnCertificateError write FOnCertificateError;
     property OnRenderProcessTerminated: TOnRenderProcessTerminated read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
     property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed write FOnPluginCrashed;
@@ -343,6 +342,7 @@ type
     FOnAddressChange: TOnAddressChange;
     FOnTitleChange: TOnTitleChange;
     FOnFavIconUrlChange: TOnFavIconUrlChange;
+    FOnFullScreenModeChange: TOnFullScreenModeChange;
     FOnTooltip: TOnTooltip;
     FOnStatusMessage: TOnStatusMessage;
     FOnConsoleMessage: TOnConsoleMessage;
@@ -370,7 +370,6 @@ type
     FOnGetAuthCredentials: TOnGetAuthCredentials;
     FOnQuotaRequest: TOnQuotaRequest;
     FOnProtocolExecution: TOnProtocolExecution;
-    FOnBeforePluginLoad: TOnBeforePluginLoad;
     FOnCertificateError: TOnCertificateError;
     FOnPluginCrashed: TOnPluginCrashed;
     FOnRenderViewReady: TOnRenderViewReady;
@@ -433,6 +432,7 @@ type
     procedure doOnAddressChange(const browser: ICefBrowser; const frame: ICefFrame; const url: ustring); virtual;
     procedure doOnTitleChange(const browser: ICefBrowser; const title: ustring); virtual;
     procedure doOnFaviconUrlChange(const browser: ICefBrowser; iconUrls: TStrings); virtual;
+    procedure doOnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean); virtual;
     function doOnTooltip(const browser: ICefBrowser; var text: ustring): Boolean; virtual;
     procedure doOnStatusMessage(const browser: ICefBrowser; const value: ustring); virtual;
     function doOnConsoleMessage(const browser: ICefBrowser; const message, source: ustring; line: Integer): Boolean; virtual;
@@ -488,8 +488,6 @@ type
       newSize: Int64; const callback: ICefRequestCallback): Boolean; virtual;
     procedure doOnProtocolExecution(const browser: ICefBrowser;
       const url: ustring; out allowOsExecution: Boolean); virtual;
-    function doOnBeforePluginLoad(const browser: ICefBrowser; const url,
-      policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; virtual;
     function doOnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
       const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
     procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
@@ -543,6 +541,7 @@ type
     property OnAddressChange: TOnAddressChange read FOnAddressChange write FOnAddressChange;
     property OnTitleChange: TOnTitleChange read FOnTitleChange write FOnTitleChange;
     property OnFavIconUrlChange: TOnFavIconUrlChange read FOnFavIconUrlChange write FOnFavIconUrlChange;
+    property OnFullScreenModeChange: TOnFullScreenModeChange read FOnFullScreenModeChange write FOnFullScreenModeChange;
     property OnTooltip: TOnTooltip read FOnTooltip write FOnTooltip;
     property OnStatusMessage: TOnStatusMessage read FOnStatusMessage write FOnStatusMessage;
     property OnConsoleMessage: TOnConsoleMessage read FOnConsoleMessage write FOnConsoleMessage;
@@ -570,7 +569,6 @@ type
     property OnGetAuthCredentials: TOnGetAuthCredentials read FOnGetAuthCredentials write FOnGetAuthCredentials;
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest write FOnQuotaRequest;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
-    property OnBeforePluginLoad: TOnBeforePluginLoad read FOnBeforePluginLoad write FOnBeforePluginLoad;
     property OnCertificateError: TOnCertificateError read FOnCertificateError write FOnCertificateError;
     property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed write FOnPluginCrashed;
     property OnRenderViewReady: TOnRenderViewReady read FOnRenderViewReady write FOnRenderViewReady;
@@ -638,6 +636,7 @@ type
     property OnAddressChange;
     property OnTitleChange;
     property OnFavIconUrlChange;
+    property OnFullScreenModeChange;
     property OnTooltip;
     property OnStatusMessage;
     property OnConsoleMessage;
@@ -706,6 +705,7 @@ type
     property OnAddressChange;
     property OnTitleChange;
     property OnFavIconUrlChange;
+    property OnFullScreenModeChange;
     property OnTooltip;
     property OnStatusMessage;
     property OnConsoleMessage;
@@ -1092,14 +1092,6 @@ begin
     FOnBeforeDownload(Self, browser, downloadItem, suggestedName, callback);
 end;
 
-function TCustomChromium.doOnBeforePluginLoad(const browser: ICefBrowser;
-  const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean;
-begin
-  Result := False;
-  if Assigned(FOnBeforePluginLoad) then
-    FOnBeforePluginLoad(Self, browser, url, policyUrl, info, Result);
-end;
-
 function TCustomChromium.doOnBeforePopup(const browser: ICefBrowser;
   const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
   targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
@@ -1234,6 +1226,13 @@ begin
   if Assigned(FOnFindResult) then
     FOnFindResult(Self, browser, identifier, count, selectionRect,
       activeMatchOrdinal, finalUpdate);
+end;
+
+procedure TCustomChromium.doOnFullScreenModeChange(const browser: ICefBrowser;
+  fullscreen: Boolean);
+begin
+  if Assigned(FOnFullScreenModeChange) then
+    FOnFullScreenModeChange(Self, browser, fullscreen);
 end;
 
 function TCustomChromium.doOnGetAuthCredentials(const browser: ICefBrowser;
@@ -1706,14 +1705,6 @@ begin
     FOnBeforeDownload(Self, browser, downloadItem, suggestedName, callback);
 end;
 
-function TCustomChromiumOSR.doOnBeforePluginLoad(const browser: ICefBrowser;
-  const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean;
-begin
-  Result := False;
-  if Assigned(FOnBeforePluginLoad) then
-    FOnBeforePluginLoad(Self, browser, url, policyUrl, info, Result);
-end;
-
 function TCustomChromiumOSR.doOnBeforePopup(const browser: ICefBrowser;
       const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
       targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
@@ -1848,6 +1839,13 @@ begin
   if Assigned(FOnFindResult) then
     FOnFindResult(Self, browser, identifier, count, selectionRect,
       activeMatchOrdinal, finalUpdate);
+end;
+
+procedure TCustomChromiumOSR.doOnFullScreenModeChange(
+  const browser: ICefBrowser; fullscreen: Boolean);
+begin
+  if Assigned(FOnFullScreenModeChange) then
+    FOnFullScreenModeChange(Self, browser, fullscreen);
 end;
 
 function TCustomChromiumOSR.doOnGetAuthCredentials(const browser: ICefBrowser;
