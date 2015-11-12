@@ -880,10 +880,7 @@ end;
 destructor TCustomChromium.Destroy;
 begin
   if FBrowser <> nil then
-  begin
     FBrowser.StopLoad;
-    FBrowser.Host.CloseBrowser(False);
-  end;
 
   if FHandler <> nil then
     (FHandler as ICefClientHandler).Disconnect;
@@ -963,8 +960,6 @@ procedure TCustomChromium.ReCreateBrowser(const url: string);
 begin
   if (FBrowser <> nil) and (FBrowserId <> 0) then
   begin
-    SendMessage(FBrowser.Host.WindowHandle, WM_CLOSE, 0, 0);
-    SendMessage(FBrowser.Host.WindowHandle, WM_DESTROY, 0, 0);
     FBrowserId := 0;
     FBrowser := nil;
 
@@ -1644,8 +1639,6 @@ procedure TCustomChromiumOSR.ReCreateBrowser(const url: string);
 begin
   if (FBrowser <> nil) and (FBrowserId <> 0) then
   begin
-    SendMessage(FBrowser.Host.WindowHandle, WM_CLOSE, 0, 0);
-    SendMessage(FBrowser.Host.WindowHandle, WM_DESTROY, 0, 0);
     FBrowserId := 0;
     FBrowser := nil;
 
