@@ -37,8 +37,6 @@ type
     FBrowser: ICefBrowser;
     FDefaultUrl: ustring;
 
-    FSettings: TCefBrowserSettings;
-
     FOnProcessMessageReceived: TOnProcessMessageReceived;
     FOnLoadStart: TOnLoadStart;
     FOnLoadEnd: TOnLoadEnd;
@@ -447,6 +445,7 @@ end;
 procedure TCustomChromiumFMX.CreateBrowser;
 var
   info: TCefWindowInfo;
+  settings: TCefBrowserSettings;
 begin
   if not (csDesigning in ComponentState) then
   begin
@@ -457,13 +456,13 @@ begin
 {$ifdef MACOSX}
     info.m_bHidden := 1;
 {$endif}
-    FillChar(FSettings, SizeOf(TCefBrowserSettings), 0);
-    FSettings.size := SizeOf(TCefBrowserSettings);
-    GetSettings(FSettings);
+    FillChar(settings, SizeOf(TCefBrowserSettings), 0);
+    settings.size := SizeOf(TCefBrowserSettings);
+    GetSettings(settings);
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
     CefBrowserCreate(@info, FHandler.Wrap, FDefaultUrl, @FSettings, nil);
 {$ELSE}
-    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @FSettings, nil);
+    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @settings, nil);
 {$ENDIF}
   end;
 end;

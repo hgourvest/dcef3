@@ -34,8 +34,6 @@ uses
 
 type
   TChromiumDevTools = class(TWinControl)
-  private
-    FSettings: TCefBrowserSettings;
   protected
     procedure WndProc(var Message: TMessage); override;
     procedure Resize; override;
@@ -53,8 +51,6 @@ type
     FBrowser: ICefBrowser;
     FBrowserId: Integer;
     FDefaultUrl: ustring;
-
-    FSettings: TCefBrowserSettings;
 
     FOnProcessMessageReceived: TOnProcessMessageReceived;
     FOnLoadStart: TOnLoadStart;
@@ -321,8 +317,6 @@ type
     FBrowser: ICefBrowser;
     FBrowserId: Integer;
     FDefaultUrl: ustring;
-
-    FSettings: TCefBrowserSettings;
 
     FOnProcessMessageReceived: TOnProcessMessageReceived;
     FOnLoadStart: TOnLoadStart;
@@ -847,6 +841,7 @@ procedure TCustomChromium.CreateBrowser;
 var
   info: TCefWindowInfo;
   rect: TRect;
+  settings: TCefBrowserSettings;
 begin
   if not (csDesigning in ComponentState) then
   begin
@@ -858,13 +853,13 @@ begin
     info.y := rect.top;
     info.Width := rect.right - rect.left;
     info.Height := rect.bottom - rect.top;
-    FillChar(FSettings, SizeOf(TCefBrowserSettings), 0);
-    FSettings.size := SizeOf(TCefBrowserSettings);
-    GetSettings(FSettings);
+    FillChar(settings, SizeOf(TCefBrowserSettings), 0);
+    settings.size := SizeOf(TCefBrowserSettings);
+    GetSettings(settings);
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
     CefBrowserHostCreate(@info, FHandler, FDefaultUrl, @settings, nil);
 {$ELSE}
-    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @FSettings, nil);
+    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @settings, nil);
     FBrowserId := FBrowser.Identifier;
 {$ENDIF}
   end;
@@ -996,6 +991,7 @@ end;
 procedure TCustomChromium.ShowDevTools(inspectElementAt: PCefPoint);
 var
   info: TCefWindowInfo;
+  settings: TCefBrowserSettings;
 begin
   if (FBrowser = nil) then Exit;
 
@@ -1008,9 +1004,9 @@ begin
   info.height := Integer(CW_USEDEFAULT);
   info.window_name := CefString('DevTools');
 
-  FillChar(FSettings, SizeOf(FSettings), 0);
-  FSettings.size := SizeOf(FSettings);
-  FBrowser.Host.ShowDevTools(@info, TCefClientOwn.Create as ICefClient, @FSettings, inspectElementAt);
+  FillChar(settings, SizeOf(settings), 0);
+  settings.size := SizeOf(settings);
+  FBrowser.Host.ShowDevTools(@info, TCefClientOwn.Create as ICefClient, @settings, inspectElementAt);
 end;
 
 procedure TCustomChromium.WndProc(var Message: TMessage);
@@ -1522,19 +1518,20 @@ end;
 procedure TCustomChromiumOSR.CreateBrowser;
 var
   info: TCefWindowInfo;
+  settings: TCefBrowserSettings;
 begin
   if not (csDesigning in ComponentState) then
   begin
     FillChar(info, SizeOf(info), 0);
     info.windowless_rendering_enabled := Ord(True);
     info.transparent_painting_enabled := Ord(FTransparentPainting);
-    FillChar(FSettings, SizeOf(TCefBrowserSettings), 0);
-    FSettings.size := SizeOf(TCefBrowserSettings);
-    GetSettings(FSettings);
+    FillChar(settings, SizeOf(TCefBrowserSettings), 0);
+    settings.size := SizeOf(TCefBrowserSettings);
+    GetSettings(settings);
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
     CefBrowserHostCreate(@info, FHandler, FDefaultUrl, @settings, nil);
 {$ELSE}
-    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @FSettings, nil);
+    FBrowser := CefBrowserHostCreateSync(@info, FHandler, '', @settings, nil);
     FBrowserId := FBrowser.Identifier;
 {$ENDIF}
   end;
@@ -2165,6 +2162,7 @@ procedure TChromiumDevTools.ShowDevTools(const browser: ICefBrowser;
 var
   info: TCefWindowInfo;
   rect: TRect;
+  settings: TCefBrowserSettings;
 begin
   if browser = nil then Exit;
 
@@ -2179,10 +2177,10 @@ begin
   info.Height := rect.bottom - rect.top;
   info.window_name := CefString('DevTools');
 
-  FillChar(FSettings, SizeOf(FSettings), 0);
-  FSettings.size := SizeOf(FSettings);
+  FillChar(settings, SizeOf(settings), 0);
+  settings.size := SizeOf(settings);
 
-  Browser.Host.ShowDevTools(@info, TCefClientOwn.Create as ICefClient, @FSettings, inspectElementAt);
+  Browser.Host.ShowDevTools(@info, TCefClientOwn.Create as ICefClient, @settings, inspectElementAt);
 end;
 
 procedure TChromiumDevTools.WndProc(var Message: TMessage);
