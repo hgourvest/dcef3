@@ -6985,32 +6985,6 @@ type
     function Eof: Boolean;
   end;
 
-  ICefDomEvent = interface(ICefBase)
-  ['{2CBD2259-ADC6-4187-9008-A666B57695CE}']
-    function GetType: ustring;
-    function GetCategory: TCefDomEventCategory;
-    function GetPhase: TCefDomEventPhase;
-    function CanBubble: Boolean;
-    function CanCancel: Boolean;
-    function GetDocument: ICefDomDocument;
-    function GetTarget: ICefDomNode;
-    function GetCurrentTarget: ICefDomNode;
-
-    property EventType: ustring read GetType;
-    property Category: TCefDomEventCategory read GetCategory;
-    property Phase: TCefDomEventPhase read GetPhase;
-    property Bubble: Boolean read CanBubble;
-    property Cancel: Boolean read CanCancel;
-    property Document: ICefDomDocument read GetDocument;
-    property Target: ICefDomNode read GetTarget;
-    property CurrentTarget: ICefDomNode read GetCurrentTarget;
-  end;
-
-  ICefDomEventListener = interface(ICefBase)
-  ['{68BABB49-1824-42D0-ACCC-FDE9F8D39B88}']
-    procedure HandleEvent(const event: ICefDomEvent);
-  end;
-
   ICefDomNode = interface(ICefBase)
   ['{96C03C9E-9C98-491A-8DAD-1947332232D6}']
     function GetType: TCefDomNodeType;
