@@ -1022,7 +1022,7 @@ begin
       if (csDesigning in ComponentState) or (FBrowser = nil) then
         inherited WndProc(Message);
     CM_WANTSPECIALKEY:
-      if not (TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN]) then
+      if not (TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN, VK_RETURN, VK_ESCAPE]) then
         Message.Result := 1 else
         inherited WndProc(Message);
     WM_GETDLGCODE:
@@ -2202,7 +2202,7 @@ begin
           inherited WndProc(Message);
       end;
     CM_WANTSPECIALKEY:
-      if not (TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN]) then
+      if not (TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN, VK_RETURN, VK_ESCAPE]) then
         Message.Result := 1 else
         inherited WndProc(Message);
     WM_GETDLGCODE:
