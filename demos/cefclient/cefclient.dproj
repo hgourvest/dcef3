@@ -2,7 +2,7 @@
 		<PropertyGroup>
 			<ProjectGuid>{A3C058A1-84E3-441B-9D48-B58A7C42BE41}</ProjectGuid>
 			<MainSource>cefclient.dpr</MainSource>
-			<Config Condition="'$(Config)'==''">Débogage</Config>
+			<Config Condition="'$(Config)'==''">Release</Config>
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<ProjectVersion>15.1</ProjectVersion>
 			<Base>True</Base>

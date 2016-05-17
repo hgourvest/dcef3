@@ -68,8 +68,7 @@ type
 
   TOnRequestGeolocationPermission = procedure(Sender: TObject; const browser: ICefBrowser;
     const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback; out Result: Boolean) of object;
-  TOnCancelGeolocationPermission = procedure(Sender: TObject; const browser: ICefBrowser;
-    const requestingUrl: ustring; requestId: Integer) of object;
+  TOnCancelGeolocationPermission = procedure(Sender: TObject; const browser: ICefBrowser; requestId: Integer) of object;
 
   TOnJsdialog = procedure(Sender: TObject; const browser: ICefBrowser; const originUrl, acceptLang: ustring;
     dialogType: TCefJsDialogType; const messageText, defaultPromptText: ustring;
@@ -104,6 +103,12 @@ type
     const request: ICefRequest; var newUrl: ustring) of object;
   TOnResourceResponse = procedure(Sender: TObject; const browser: ICefBrowser; const frame: ICefFrame;
     const request: ICefRequest; const response: ICefResponse; out Result: Boolean) of Object;
+  TOnGetResourceResponseFilter = procedure(Sender: TObject; const browser: ICefBrowser;
+    const frame: ICefFrame; const request: ICefRequest; const response: ICefResponse;
+    out Result: ICefResponseFilter) of object;
+  TOnResourceLoadComplete = procedure(Sender: TObject; const browser: ICefBrowser;
+    const frame: ICefFrame; const request: ICefRequest; const response: ICefResponse;
+    status: TCefUrlRequestStatus; receivedContentLength: Int64) of object;
   TOnGetAuthCredentials = procedure(Sender: TObject; const browser: ICefBrowser; const frame: ICefFrame;
     isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
     const callback: ICefAuthCallback; out Result: Boolean) of object;
@@ -168,7 +173,6 @@ type
     FJavascriptAccessClipboard: TCefState;
     FJavascriptDomPaste: TCefState;
     FCaretBrowsing: TCefState;
-    FJava: TCefState;
     FPlugins: TCefState;
     FUniversalAccessFromFileUrls: TCefState;
     FFileAccessFromFileUrls: TCefState;
@@ -192,7 +196,6 @@ type
     property JavascriptAccessClipboard: TCefState read FJavascriptAccessClipboard write FJavascriptAccessClipboard default STATE_DEFAULT;
     property JavascriptDomPaste: TCefState read FJavascriptDomPaste write FJavascriptDomPaste default STATE_DEFAULT;
     property CaretBrowsing: TCefState read FCaretBrowsing write FCaretBrowsing default STATE_DEFAULT;
-    property Java: TCefState read FJava write FJava default STATE_DEFAULT;
     property Plugins: TCefState read FPlugins write FPlugins default STATE_DEFAULT;
     property UniversalAccessFromFileUrls: TCefState read FUniversalAccessFromFileUrls write FUniversalAccessFromFileUrls default STATE_DEFAULT;
     property FileAccessFromFileUrls: TCefState read FFileAccessFromFileUrls write FFileAccessFromFileUrls default STATE_DEFAULT;
@@ -278,7 +281,7 @@ type
     function doOnRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback): Boolean;
     procedure doOnCancelGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer);
+      requestId: Integer);
 
     procedure doOnBeforeDownload(const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
       const suggestedName: ustring; const callback: ICefBeforeDownloadCallback);
@@ -318,6 +321,11 @@ type
       const request: ICefRequest; var newUrl: ustring);
     function doOnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; const response: ICefResponse): Boolean;
+    function doOnGetResourceResponseFilter(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse): ICefResponseFilter;
+    procedure doOnResourceLoadComplete(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; status: TCefUrlRequestStatus;
+      receivedContentLength: Int64);
     function doOnGetAuthCredentials(const browser: ICefBrowser; const frame: ICefFrame;
       isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback): Boolean;
@@ -502,8 +510,7 @@ type
   protected
     function OnRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback): Boolean; override;
-    procedure OnCancelGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer); override;
+    procedure OnCancelGeolocationPermission(const browser: ICefBrowser; requestId: Integer); override;
   public
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
   end;
@@ -558,6 +565,11 @@ type
       const request: ICefRequest; var newUrl: ustring); override;
     function OnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; const response: ICefResponse): Boolean; override;
+    function GetResourceResponseFilter(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse): ICefResponseFilter; override;
+    procedure OnResourceLoadComplete(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; status: TCefUrlRequestStatus;
+      receivedContentLength: Int64); override;
     function GetAuthCredentials(const browser: ICefBrowser; const frame: ICefFrame;
       isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback): Boolean; override;
@@ -953,9 +965,9 @@ begin
 end;
 
 procedure TCustomGeolocationHandler.OnCancelGeolocationPermission(
-  const browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer);
+  const browser: ICefBrowser; requestId: Integer);
 begin
-  FEvent.doOnCancelGeolocationPermission(browser, requestingUrl, requestId);
+  FEvent.doOnCancelGeolocationPermission(browser, requestId);
 end;
 
 function TCustomGeolocationHandler.OnRequestGeolocationPermission(
@@ -1062,6 +1074,13 @@ begin
   Result := FEvent.doOnGetResourceHandler(browser, frame, request);
 end;
 
+function TCustomRequestHandler.GetResourceResponseFilter(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse): ICefResponseFilter;
+begin
+  Result := FEvent.doOnGetResourceResponseFilter(browser, frame, request, response);
+end;
+
 function TCustomRequestHandler.OnBeforeBrowse(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest;
   isRedirect: Boolean): Boolean;
@@ -1118,6 +1137,14 @@ end;
 procedure TCustomRequestHandler.OnRenderViewReady(const browser: ICefBrowser);
 begin
   FEvent.doOnRenderViewReady(browser);
+end;
+
+procedure TCustomRequestHandler.OnResourceLoadComplete(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse;
+  status: TCefUrlRequestStatus; receivedContentLength: Int64);
+begin
+  FEvent.doOnResourceLoadComplete(browser, frame, request, response, status, receivedContentLength);
 end;
 
 procedure TCustomRequestHandler.OnResourceRedirect(const browser: ICefBrowser;
@@ -1259,7 +1286,6 @@ begin
   FJavascriptAccessClipboard := STATE_DEFAULT;
   FJavascriptDomPaste := STATE_DEFAULT;
   FCaretBrowsing := STATE_DEFAULT;
-  FJava := STATE_DEFAULT;
   FPlugins := STATE_DEFAULT;
   FUniversalAccessFromFileUrls := STATE_DEFAULT;
   FFileAccessFromFileUrls := STATE_DEFAULT;

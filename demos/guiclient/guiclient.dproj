@@ -3,7 +3,7 @@
 			<ProjectGuid>{CD6249F7-234D-48D7-B539-F5B733B3ED45}</ProjectGuid>
 			<ProjectVersion>15.1</ProjectVersion>
 			<MainSource>guiclient.dpr</MainSource>
-			<Config Condition="'$(Config)'==''">Débogage</Config>
+			<Config Condition="'$(Config)'==''">Release</Config>
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<Base>True</Base>
 			<AppType>Application</AppType>

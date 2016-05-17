@@ -3,7 +3,7 @@
 			<ProjectGuid>{1A713336-3F57-4843-97DE-5117D0A2ED75}</ProjectGuid>
 			<MainSource>offscreen.dpr</MainSource>
 			<Base>True</Base>
-			<Config Condition="'$(Config)'==''">Debug</Config>
+			<Config Condition="'$(Config)'==''">Release</Config>
 			<TargetedPlatforms>3</TargetedPlatforms>
 			<AppType>Application</AppType>
 			<FrameworkType>VCL</FrameworkType>

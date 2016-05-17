@@ -3,7 +3,7 @@
 			<ProjectGuid>{BDCAF0A9-1BEE-4045-901B-FDEBAFFEA4C0}</ProjectGuid>
 			<MainSource>cefclient.dpr</MainSource>
 			<Base>True</Base>
-			<Config Condition="'$(Config)'==''">Debug</Config>
+			<Config Condition="'$(Config)'==''">Release</Config>
 			<TargetedPlatforms>3</TargetedPlatforms>
 			<AppType>Console</AppType>
 			<FrameworkType>None</FrameworkType>

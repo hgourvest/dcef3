@@ -95,6 +95,8 @@ type
     FOnGetResourceHandler: TOnGetResourceHandler;
     FOnResourceRedirect: TOnResourceRedirect;
     FOnResourceResponse: TOnResourceResponse;
+    FOnGetResourceResponseFilter: TOnGetResourceResponseFilter;
+    FOnResourceLoadComplete: TOnResourceLoadComplete;
     FOnGetAuthCredentials: TOnGetAuthCredentials;
     FOnQuotaRequest: TOnQuotaRequest;
     FOnProtocolExecution: TOnProtocolExecution;
@@ -162,8 +164,7 @@ type
 
     function doOnRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback): Boolean; virtual;
-    procedure doOnCancelGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer); virtual;
+    procedure doOnCancelGeolocationPermission(const browser: ICefBrowser; requestId: Integer); virtual;
 
     function doOnJsdialog(const browser: ICefBrowser; const originUrl, acceptLang: ustring;
       dialogType: TCefJsDialogType; const messageText, defaultPromptText: ustring;
@@ -198,6 +199,11 @@ type
       const request: ICefRequest; var newUrl: ustring); virtual;
     function doOnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; const response: ICefResponse): Boolean; virtual;
+    function doOnGetResourceResponseFilter(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse): ICefResponseFilter; virtual;
+    procedure doOnResourceLoadComplete(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; status: TCefUrlRequestStatus;
+      receivedContentLength: Int64); virtual;
     function doOnGetAuthCredentials(const browser: ICefBrowser; const frame: ICefFrame;
       isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback): Boolean; virtual;
@@ -283,6 +289,8 @@ type
     property OnGetResourceHandler: TOnGetResourceHandler read FOnGetResourceHandler write FOnGetResourceHandler;
     property OnResourceRedirect: TOnResourceRedirect read FOnResourceRedirect write FOnResourceRedirect;
     property OnResourceResponse: TOnResourceResponse read FOnResourceResponse write FOnResourceResponse;
+    property OnGetResourceResponseFilter: TOnGetResourceResponseFilter read FOnGetResourceResponseFilter write FOnGetResourceResponseFilter;
+    property OnResourceLoadComplete: TOnResourceLoadComplete read FOnResourceLoadComplete write FOnResourceLoadComplete;
     property OnGetAuthCredentials: TOnGetAuthCredentials read FOnGetAuthCredentials write FOnGetAuthCredentials;
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest write FOnQuotaRequest;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
@@ -361,6 +369,8 @@ type
     FOnGetResourceHandler: TOnGetResourceHandler;
     FOnResourceRedirect: TOnResourceRedirect;
     FOnResourceResponse: TOnResourceResponse;
+    FOnGetResourceResponseFilter: TOnGetResourceResponseFilter;
+    FOnResourceLoadComplete: TOnResourceLoadComplete;
     FOnGetAuthCredentials: TOnGetAuthCredentials;
     FOnQuotaRequest: TOnQuotaRequest;
     FOnProtocolExecution: TOnProtocolExecution;
@@ -438,8 +448,7 @@ type
 
     function doOnRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback): Boolean; virtual;
-    procedure doOnCancelGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer); virtual;
+    procedure doOnCancelGeolocationPermission(const browser: ICefBrowser; requestId: Integer); virtual;
 
     function doOnJsdialog(const browser: ICefBrowser; const originUrl, acceptLang: ustring;
       dialogType: TCefJsDialogType; const messageText, defaultPromptText: ustring;
@@ -475,6 +484,11 @@ type
       const request: ICefRequest; var newUrl: ustring); virtual;
     function doOnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; const response: ICefResponse): Boolean; virtual;
+    function doOnGetResourceResponseFilter(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse): ICefResponseFilter; virtual;
+    procedure doOnResourceLoadComplete(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; status: TCefUrlRequestStatus;
+      receivedContentLength: Int64); virtual;
     function doOnGetAuthCredentials(const browser: ICefBrowser; const frame: ICefFrame;
       isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback): Boolean; virtual;
@@ -560,6 +574,8 @@ type
     property OnGetResourceHandler: TOnGetResourceHandler read FOnGetResourceHandler write FOnGetResourceHandler;
     property OnResourceRedirect: TOnResourceRedirect read FOnResourceRedirect write FOnResourceRedirect;
     property OnResourceResponse: TOnResourceResponse read FOnResourceResponse write FOnResourceResponse;
+    property OnGetResourceResponseFilter: TOnGetResourceResponseFilter read FOnGetResourceResponseFilter write FOnGetResourceResponseFilter;
+    property OnResourceLoadComplete: TOnResourceLoadComplete read FOnResourceLoadComplete write FOnResourceLoadComplete;
     property OnGetAuthCredentials: TOnGetAuthCredentials read FOnGetAuthCredentials write FOnGetAuthCredentials;
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest write FOnQuotaRequest;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
@@ -655,6 +671,8 @@ type
     property OnGetResourceHandler;
     property OnResourceRedirect;
     property OnResourceResponse;
+    property OnGetResourceResponseFilter;
+    property OnResourceLoadComplete;
     property OnGetAuthCredentials;
     property OnQuotaRequest;
     property OnProtocolExecution;
@@ -724,6 +742,8 @@ type
     property OnGetResourceHandler;
     property OnResourceRedirect;
     property OnResourceResponse;
+    property OnGetResourceResponseFilter;
+    property OnResourceLoadComplete;
     property OnGetAuthCredentials;
     property OnQuotaRequest;
     property OnProtocolExecution;
@@ -915,7 +935,6 @@ begin
   settings.javascript_access_clipboard := FOptions.JavascriptAccessClipboard;
   settings.javascript_dom_paste := FOptions.JavascriptDomPaste;
   settings.caret_browsing := FOptions.CaretBrowsing;
-  settings.java := FOptions.Java;
   settings.plugins := FOptions.Plugins;
   settings.universal_access_from_file_urls := FOptions.UniversalAccessFromFileUrls;
   settings.file_access_from_file_urls := FOptions.FileAccessFromFileUrls;
@@ -1010,12 +1029,15 @@ begin
 end;
 
 procedure TCustomChromium.WndProc(var Message: TMessage);
+var
+  hndl: THandle;
 begin
   case Message.Msg of
     WM_SETFOCUS:
       begin
-        if (FBrowser <> nil) and (FBrowser.Host.WindowHandle <> 0) then
-          PostMessage(FBrowser.Host.WindowHandle, WM_SETFOCUS, Message.WParam, 0);
+        hndl := GetWindow(Handle, GW_CHILD);
+        if hndl <> 0 then
+          PostMessage(hndl, WM_SETFOCUS, Message.WParam, 0);
         inherited WndProc(Message);
       end;
     WM_ERASEBKGND:
@@ -1116,10 +1138,10 @@ begin
 end;
 
 procedure TCustomChromium.doOnCancelGeolocationPermission(
-  const browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer);
+  const browser: ICefBrowser; requestId: Integer);
 begin
   if Assigned(FOnCancelGeolocationPermission) then
-    FOnCancelGeolocationPermission(Self, browser, requestingUrl, requestId);
+    FOnCancelGeolocationPermission(Self, browser, requestId);
 end;
 
 function TCustomChromium.doOnCertificateError(const browser: ICefBrowser;
@@ -1241,6 +1263,15 @@ function TCustomChromium.doOnGetResourceHandler(const browser: ICefBrowser;
 begin
   if Assigned(FOnGetResourceHandler) then
     FOnGetResourceHandler(Self, browser, frame, request, Result) else
+    Result := nil;
+end;
+
+function TCustomChromium.doOnGetResourceResponseFilter(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse): ICefResponseFilter;
+begin
+  if Assigned(FOnGetResourceResponseFilter) then
+    FOnGetResourceResponseFilter(Self, browser, frame, request, response, Result) else
     Result := nil;
 end;
 
@@ -1416,6 +1447,15 @@ procedure TCustomChromium.doOnResetDialogState(const browser: ICefBrowser);
 begin
   if Assigned(FOnResetDialogState) then
     FOnResetDialogState(Self, browser);
+end;
+
+procedure TCustomChromium.doOnResourceLoadComplete(const browser: ICefBrowser;
+  const frame: ICefFrame; const request: ICefRequest;
+  const response: ICefResponse; status: TCefUrlRequestStatus;
+  receivedContentLength: Int64);
+begin
+  if Assigned(FOnResourceLoadComplete) then
+    FOnResourceLoadComplete(Self, browser, frame, request, response, status, receivedContentLength);
 end;
 
 procedure TCustomChromium.doOnResourceRedirect(const browser: ICefBrowser;
@@ -1596,7 +1636,6 @@ begin
   settings.javascript_access_clipboard := FOptions.JavascriptAccessClipboard;
   settings.javascript_dom_paste := FOptions.JavascriptDomPaste;
   settings.caret_browsing := FOptions.CaretBrowsing;
-  settings.java := FOptions.Java;
   settings.plugins := FOptions.Plugins;
   settings.universal_access_from_file_urls := FOptions.UniversalAccessFromFileUrls;
   settings.file_access_from_file_urls := FOptions.FileAccessFromFileUrls;
@@ -1728,10 +1767,10 @@ begin
 end;
 
 procedure TCustomChromiumOSR.doOnCancelGeolocationPermission(
-  const browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer);
+  const browser: ICefBrowser; requestId: Integer);
 begin
   if Assigned(FOnCancelGeolocationPermission) then
-    FOnCancelGeolocationPermission(Self, browser, requestingUrl, requestId);
+    FOnCancelGeolocationPermission(Self, browser, requestId);
 end;
 
 function TCustomChromiumOSR.doOnCertificateError(const browser: ICefBrowser;
@@ -1853,6 +1892,15 @@ function TCustomChromiumOSR.doOnGetResourceHandler(const browser: ICefBrowser;
 begin
   if Assigned(FOnGetResourceHandler) then
     FOnGetResourceHandler(Self, browser, frame, request, Result) else
+    Result := nil;
+end;
+
+function TCustomChromiumOSR.doOnGetResourceResponseFilter(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse): ICefResponseFilter;
+begin
+  if Assigned(FOnGetResourceResponseFilter) then
+    FOnGetResourceResponseFilter(Self, browser, frame, request, response, Result) else
     Result := nil;
 end;
 
@@ -2039,6 +2087,15 @@ procedure TCustomChromiumOSR.doOnResetDialogState(const browser: ICefBrowser);
 begin
   if Assigned(FOnResetDialogState) then
     FOnResetDialogState(Self, browser);
+end;
+
+procedure TCustomChromiumOSR.doOnResourceLoadComplete(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse;
+  status: TCefUrlRequestStatus; receivedContentLength: Int64);
+begin
+  if Assigned(FOnResourceLoadComplete) then
+    FOnResourceLoadComplete(Self, browser, frame, request, response, status, receivedContentLength);
 end;
 
 procedure TCustomChromiumOSR.doOnResourceRedirect(const browser: ICefBrowser;
