@@ -24,7 +24,6 @@ begin
 
   CefRegisterSchemeHandlerFactory('local', '', TFileScheme);
 
-
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

@@ -10149,14 +10149,12 @@ type
   procedure TInternalApp.OnBeforeCommandLineProcessing(const processType: ustring;
       const commandLine: ICefCommandLine);
   begin
-
     if Assigned(CefOnBeforeCommandLineProcessing) then
       CefOnBeforeCommandLineProcessing(processType, commandLine);
   end;
 
   procedure TInternalApp.OnRegisterCustomSchemes(const registrar: ICefSchemeRegistrar);
   begin
-
     if Assigned(CefOnRegisterCustomSchemes) then
       CefOnRegisterCustomSchemes(registrar);
   end;
@@ -10168,7 +10166,6 @@ type
 
   function TInternalApp.GetBrowserProcessHandler: ICefBrowserProcessHandler;
   begin
-
     result := CefBrowserProcessHandler;
   end;
 
@@ -11464,13 +11461,13 @@ begin
     settings.background_color := BackgroundColor;
     settings.accept_language_list := CefString(AcceptLanguageList);
 
-    errcode := cef_execute_process(@HInstance, nil, WindowsSandboxInfo);
+    app := TInternalApp.Create;
+    errcode := cef_execute_process(@HInstance, CefGetData(app), WindowsSandboxInfo);
     if errcode >= 0 then
     begin
       Result := False;
       Exit;
     end;
-    app := TInternalApp.Create;
     cef_initialize(@HInstance, @settings, CefGetData(app), WindowsSandboxInfo);
     CefIsMainProcess := True;
   end;
