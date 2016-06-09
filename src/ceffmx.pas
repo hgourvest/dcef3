@@ -28,6 +28,9 @@ uses
 {$ifdef MSWINDOWS}
   Messages, Windows,
 {$endif}
+{$ifdef DELPHI17_UP}
+  FMX.Graphics,
+{$endif}
   FMX.Types, FMX.Platform, FMX.Controls, System.Types, ceflib, cefgui;
 
 type
@@ -98,6 +101,9 @@ type
     FFontOptions: TChromiumFontOptions;
 
     FBuffer: TBitmap;
+{$ifdef DELPHI17_UP}
+    FMouseWheelService: IFMXMouseService;
+{$endif}
     procedure GetSettings(var settings: TCefBrowserSettings);
     procedure CreateBrowser;
   protected
@@ -311,6 +317,20 @@ type
     property TabOrder;
     property Visible;
 
+{$ifdef DELPHI17_UP}
+    property CanFocus default True;
+    property CanParentFocus;
+    property Height;
+    property Padding;
+    property Opacity;
+    property Margins;
+    property Position;
+    property RotationAngle;
+    property RotationCenter;
+    property Scale;
+    property Size;
+{$endif}
+
     property OnProcessMessageReceived;
     property OnLoadStart;
     property OnLoadEnd;
@@ -437,6 +457,11 @@ begin
 
   FOptions := TChromiumOptions.Create;
   FFontOptions := TChromiumFontOptions.Create;
+
+{$ifdef DELPHI17_UP}
+  if TPlatformServices.Current.SupportsPlatformService(IFMXMouseService) then
+    FMouseWheelService := TPlatformServices.Current.GetPlatformService(IFMXMouseService) as IFMXMouseService;
+{$endif}
 
   FDefaultEncoding := '';
   FBrowser := nil;
@@ -869,6 +894,45 @@ procedure TCustomChromiumFMX.doOnPaint(const browser: ICefBrowser;
   kind: TCefPaintElementType; dirtyRectsCount: NativeUInt;
   const dirtyRects: PCefRectArray; const buffer: Pointer;
   width, height: Integer);
+{$ifdef DELPHI17_UP}
+var
+  wSrc : PByte;
+  wOffset, i, j, c : Integer;
+  wBitmapData: TBitmapData;
+  wColor: TAlphaColor;
+const
+  _BytesPercolor : integer = 4;
+begin
+  if (FBuffer = nil)  then
+    FBuffer := TBitmap.Create(Width, Height);
+
+  if (FBuffer.Width = Width) and (FBuffer.Height = Height) and (dirtyRectsCount > 0)  then
+  begin
+    // Getting the bitmap data pointer
+    FBuffer.Map(TMapAccess.ReadWrite, wBitmapData);
+    try
+      // for each rect
+      for c := 0 to dirtyRectsCount - 1 do
+      begin
+        // loop on pixels
+        for i := 0 to dirtyRects[c].height - 1 do
+          for j := 0 to dirtyRects[c].width - 1 do
+          begin
+            wOffset := (((dirtyRects[c].y + i) * width) + dirtyRects[c].x + j) * _BytesPercolor; // calculate offset
+            wSrc := @PByte(buffer)[wOffset];
+            // move color value to firemonkey bitmap
+            System.Move(wSrc^, wColor, _BytesPercolor);
+            wBitmapData.SetPixel(dirtyRects[c].x + j , dirtyRects[c].y + i, wColor);
+          end;
+        // Update
+        InvalidateRect(RectF(0, 0, width, height));
+      end;
+    finally
+      FBuffer.Unmap(wBitmapData);
+    end;
+  end;
+end;
+{$else}
 var
   src, dst: PByte;
   offset, i, {j,} w, c: Integer;
@@ -901,6 +965,7 @@ begin
         dirtyRects[c].x + dirtyRects[c].width,  dirtyRects[c].y + dirtyRects[c].height));
     end;
 end;
+{$endif}
 
 procedure TCustomChromiumFMX.doOnPluginCrashed(const browser: ICefBrowser;
   const pluginPath: ustring);
@@ -1170,14 +1235,19 @@ procedure TCustomChromiumFMX.MouseWheel(Shift: TShiftState; WheelDelta: Integer;
 var
   event: TCefMouseEvent;
 begin
+{$ifdef DELPHI17_UP}
+  if (FMouseWheelService <> nil) AND (Browser <> nil) then
+    with AbsoluteToLocal(FMouseWheelService.GetMousePos()).Round do
+{$else}
   if Browser <> nil then
-  with AbsoluteToLocal(Platform.GetMousePos).Round do
-  begin
-    event.x := X;
-    event.y := Y;
-    event.modifiers := getModifiers(Shift);
-    Browser.Host.SendMouseWheelEvent(@event, 0, WheelDelta);
-  end;
+    with AbsoluteToLocal(Platform.GetMousePos).Round do
+{$endif}
+    begin
+      event.x := X;
+      event.y := Y;
+      event.modifiers := getModifiers(Shift);
+      Browser.Host.SendMouseWheelEvent(@event, 0, WheelDelta);
+    end;
 end;
 
 procedure TCustomChromiumFMX.Paint;
