@@ -10,9 +10,7 @@ implementation
 uses
   Classes, cefvcl
 {$ifdef DELPHI16_UP}
-{$ifndef DELPHI17_UP}
   ,ceffmx
-{$endif}
 {$endif}
   ;
 
@@ -21,9 +19,7 @@ begin
   RegisterComponents('Chromium', [
     TChromiumDevTools, TChromium, TChromiumOSR
 {$ifdef DELPHI16_UP}
-{$ifndef DELPHI17_UP}
     ,TChromiumFMX
-{$endif}
 {$endif}
     ]);
 end;
