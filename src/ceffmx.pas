@@ -1264,10 +1264,10 @@ var
 begin
 {$ifdef DELPHI17_UP}
   if (FMouseWheelService <> nil) AND (Browser <> nil) then
-    with AbsoluteToLocal(FMouseWheelService.GetMousePos()).Round do
+    with ScreenToLocal(FMouseWheelService.GetMousePos()).Round do
 {$else}
   if Browser <> nil then
-    with AbsoluteToLocal(Platform.GetMousePos).Round do
+    with ScreenToLocal(Platform.GetMousePos).Round do
 {$endif}
     begin
       event.x := X;
