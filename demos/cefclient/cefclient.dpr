@@ -84,11 +84,10 @@ const
   IDC_NAV_RELOAD = 202;
   IDC_NAV_STOP = 203;
 
-var
-  setting: TCefBrowserSettings;
 
 function CefWndProc(Wnd: HWND; message: UINT; wParam: Integer; lParam: Integer): Integer; stdcall;
 var
+  setting: TCefBrowserSettings;
   ps: PAINTSTRUCT;
   info: TCefWindowInfo;
   rect: TRect;

@@ -29,14 +29,35 @@ var
   brows: ICefBrowser = nil;
   browserId: Integer = 0;
   navigateto: ustring = 'http://www.google.com';
+
+
+function CreateBrowser(Wnd: HWND): Integer;
+var
   setting: TCefBrowserSettings;
+  info: TCefWindowInfo;
+  rect: TRect;
+begin
+  handl := TCustomClient.Create;
+  GetClientRect(Wnd, rect);
+  FillChar(info, SizeOf(info), 0);
+  info.Style := WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or WS_TABSTOP;
+  info.parent_window := Wnd;
+  info.x := rect.left;
+  info.y := rect.top;
+  info.Width := rect.right - rect.left;
+  info.Height := rect.bottom - rect.top;
+  FillChar(setting, sizeof(setting), 0);
+  setting.size := SizeOf(setting);
+  CefBrowserHostCreateSync(@info, handl, navigateto, @setting, nil);
+  SetTimer(Wnd, 1, 100, nil);
+  result := 0;
+end;
 
 function CefWndProc(Wnd: HWND; message: UINT; wParam: Integer; lParam: Integer): Integer; stdcall;
 var
   ps: PAINTSTRUCT;
-  info: TCefWindowInfo;
-  rect: TRect;
   hdwp: THandle;
+  rect: TRect;
 begin
   case message of
     WM_PAINT:
@@ -47,20 +68,7 @@ begin
       end;
     WM_CREATE:
       begin
-        handl := TCustomClient.Create;
-        GetClientRect(Wnd, rect);
-        FillChar(info, SizeOf(info), 0);
-        info.Style := WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or WS_TABSTOP;
-        info.parent_window := Wnd;
-        info.x := rect.left;
-        info.y := rect.top;
-        info.Width := rect.right - rect.left;
-        info.Height := rect.bottom - rect.top;
-        FillChar(setting, sizeof(setting), 0);
-        setting.size := SizeOf(setting);
-        CefBrowserHostCreateSync(@info, handl, navigateto, @setting, nil);
-        SetTimer(Wnd, 1, 100, nil);
-        result := 0;
+        Result := CreateBrowser(Wnd);
       end;
     WM_DESTROY:
       begin
