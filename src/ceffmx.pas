@@ -74,7 +74,6 @@ type
     FOnBeforePopup: TOnBeforePopup;
     FOnAfterCreated: TOnAfterCreated;
     FOnBeforeClose: TOnBeforeClose;
-    FOnRunModal: TOnRunModal;
     FOnClose: TOnClose;
 
     FOnBeforeBrowse: TOnBeforeBrowse;
@@ -165,7 +164,7 @@ type
       const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback): Boolean; virtual;
     procedure doOnCancelGeolocationPermission(const browser: ICefBrowser; requestId: Integer); virtual;
 
-    function doOnJsdialog(const browser: ICefBrowser; const originUrl, acceptLang: ustring;
+    function doOnJsdialog(const browser: ICefBrowser; const originUrl: ustring;
       dialogType: TCefJsDialogType; const messageText, defaultPromptText: ustring;
       callback: ICefJsDialogCallback; out suppressMessage: Boolean): Boolean; virtual;
     function doOnBeforeUnloadDialog(const browser: ICefBrowser;
@@ -183,7 +182,6 @@ type
       var noJavascriptAccess: Boolean): Boolean; virtual;
     procedure doOnAfterCreated(const browser: ICefBrowser); virtual;
     procedure doOnBeforeClose(const browser: ICefBrowser); virtual;
-    function doOnRunModal(const browser: ICefBrowser): Boolean; virtual;
     function doOnClose(const browser: ICefBrowser): Boolean; virtual;
 
     function doOnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
@@ -279,7 +277,6 @@ type
     property OnBeforePopup: TOnBeforePopup read FOnBeforePopup write FOnBeforePopup;
     property OnAfterCreated: TOnAfterCreated read FOnAfterCreated write FOnAfterCreated;
     property OnBeforeClose: TOnBeforeClose read FOnBeforeClose write FOnBeforeClose;
-    property OnRunModal: TOnRunModal read FOnRunModal write FOnRunModal;
     property OnClose: TOnClose read FOnClose write FOnClose;
 
     property OnBeforeBrowse: TOnBeforeBrowse read FOnBeforeBrowse write FOnBeforeBrowse;
@@ -373,7 +370,6 @@ type
     property OnBeforePopup;
     property OnAfterCreated;
     property OnBeforeClose;
-    property OnRunModal;
     property OnClose;
 
     property OnBeforeBrowse;
@@ -853,13 +849,13 @@ begin
 end;
 
 function TCustomChromiumFMX.doOnJsdialog(const browser: ICefBrowser;
-  const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+  const originUrl: ustring; dialogType: TCefJsDialogType;
   const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
   out suppressMessage: Boolean): Boolean;
 begin
   Result := False;
   if Assigned(FOnJsdialog) then
-    FOnJsdialog(Self, browser, originUrl, acceptLang, dialogType,
+    FOnJsdialog(Self, browser, originUrl, dialogType,
       messageText, defaultPromptText, callback, suppressMessage, Result);
 end;
 
@@ -1090,13 +1086,6 @@ begin
   Result := False;
   if Assigned(FOnResourceResponse) then
     FOnResourceResponse(Self, browser, frame, request, response, Result);
-end;
-
-function TCustomChromiumFMX.doOnRunModal(const browser: ICefBrowser): Boolean;
-begin
-  Result := False;
-  if Assigned(FOnRunModal) then
-    FOnRunModal(Self, browser, Result);
 end;
 
 procedure TCustomChromiumFMX.doOnScrollOffsetChanged(

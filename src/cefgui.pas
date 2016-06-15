@@ -70,7 +70,7 @@ type
     const requestingUrl: ustring; requestId: Integer; const callback: ICefGeolocationCallback; out Result: Boolean) of object;
   TOnCancelGeolocationPermission = procedure(Sender: TObject; const browser: ICefBrowser; requestId: Integer) of object;
 
-  TOnJsdialog = procedure(Sender: TObject; const browser: ICefBrowser; const originUrl, acceptLang: ustring;
+  TOnJsdialog = procedure(Sender: TObject; const browser: ICefBrowser; const originUrl: ustring;
     dialogType: TCefJsDialogType; const messageText, defaultPromptText: ustring;
     callback: ICefJsDialogCallback; out suppressMessage: Boolean; out Result: Boolean) of object;
   TOnBeforeUnloadDialog = procedure(Sender: TObject; const browser: ICefBrowser;
@@ -87,7 +87,6 @@ type
 
   TOnAfterCreated = procedure(Sender: TObject; const browser: ICefBrowser) of object;
   TOnBeforeClose = procedure(Sender: TObject; const browser: ICefBrowser) of object;
-  TOnRunModal = procedure(Sender: TObject; const browser: ICefBrowser; out Result: Boolean) of object;
   TOnClose = procedure(Sender: TObject; const browser: ICefBrowser; out Result: Boolean) of object;
 
   TOnBeforeBrowse = procedure(Sender: TObject; const browser: ICefBrowser; const frame: ICefFrame;
@@ -288,7 +287,7 @@ type
     procedure doOnDownloadUpdated(const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
         const callback: ICefDownloadItemCallback);
 
-    function doOnJsdialog(const browser: ICefBrowser; const originUrl, acceptLang: ustring;
+    function doOnJsdialog(const browser: ICefBrowser; const originUrl: ustring;
       dialogType: TCefJsDialogType; const messageText, defaultPromptText: ustring;
       callback: ICefJsDialogCallback; out suppressMessage: Boolean): Boolean;
     function doOnBeforeUnloadDialog(const browser: ICefBrowser;
@@ -305,7 +304,6 @@ type
       var noJavascriptAccess: Boolean): Boolean;
     procedure doOnAfterCreated(const browser: ICefBrowser);
     procedure doOnBeforeClose(const browser: ICefBrowser);
-    function doOnRunModal(const browser: ICefBrowser): Boolean;
     function doOnClose(const browser: ICefBrowser): Boolean;
 
     function doOnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
@@ -519,7 +517,7 @@ type
   private
     FEvent: IChromiumEvents;
   protected
-    function OnJsdialog(const browser: ICefBrowser; const originUrl, acceptLang: ustring;
+    function OnJsdialog(const browser: ICefBrowser; const originUrl: ustring;
       dialogType: TCefJsDialogType; const messageText, defaultPromptText: ustring;
       callback: ICefJsDialogCallback; out suppressMessage: Boolean): Boolean; override;
     function OnBeforeUnloadDialog(const browser: ICefBrowser;
@@ -542,7 +540,6 @@ type
       var noJavascriptAccess: Boolean): Boolean; override;
     procedure OnAfterCreated(const browser: ICefBrowser); override;
     procedure OnBeforeClose(const browser: ICefBrowser); override;
-    function RunModal(const browser: ICefBrowser): Boolean; override;
     function DoClose(const browser: ICefBrowser): Boolean; override;
   public
     constructor Create(const events: IChromiumEvents); reintroduce; virtual;
@@ -998,11 +995,11 @@ begin
 end;
 
 function TCustomJsDialogHandler.OnJsdialog(const browser: ICefBrowser;
-  const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+  const originUrl: ustring; dialogType: TCefJsDialogType;
   const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
   out suppressMessage: Boolean): Boolean;
 begin
-  Result := FEvent.doOnJsdialog(browser, originUrl, acceptLang, dialogType,
+  Result := FEvent.doOnJsdialog(browser, originUrl, dialogType,
     messageText, defaultPromptText, callback, suppressMessage);
 end;
 
@@ -1045,11 +1042,6 @@ begin
   Result := FEvent.doOnBeforePopup(browser, frame, targetUrl, targetFrameName,
     targetDisposition, userGesture, popupFeatures, windowInfo, client, settings,
     noJavascriptAccess);
-end;
-
-function TCustomLifeSpanHandler.RunModal(const browser: ICefBrowser): Boolean;
-begin
-  Result := FEvent.doOnRunModal(browser);
 end;
 
 { TCustomRequestHandler }
