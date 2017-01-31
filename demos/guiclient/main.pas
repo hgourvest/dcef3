@@ -5,7 +5,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ceflib, cefvcl, Buttons, ActnList, Menus, ComCtrls,
+  Dialogs, StdCtrls, ceflib, cefvcl, cefgui, Buttons, ActnList, Menus, ComCtrls,
   ExtCtrls, XPMan, Registry, ShellApi, SyncObjs;
 
 type
@@ -81,8 +81,6 @@ type
       const frame: ICefFrame; const url: ustring);
     procedure crmLoadEnd(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; httpStatusCode: Integer);
-    procedure crmLoadStart(Sender: TObject; const browser: ICefBrowser;
-      const frame: ICefFrame);
     procedure crmStatusMessage(Sender: TObject; const browser: ICefBrowser;
       const value: ustring);
     procedure crmTitleChange(Sender: TObject; const browser: ICefBrowser;
@@ -119,6 +117,8 @@ type
     procedure crmBeforeResourceLoad(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest;
       const callback: ICefRequestCallback; out Result: TCefReturnValue);
+    procedure crmLoadStart(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; transitionType: TCefTransitionType);
   private
     { Déclarations privées }
     FLoading: Boolean;
@@ -130,6 +130,11 @@ type
     procedure OnWebKitInitialized; override;
   end;
 
+  TCustomBrowserProcessHandler = class(TCefBrowserProcessHandlerOwn)
+  protected
+    procedure OnScheduleMessagePumpWork(delayMs: Int64); override;
+  end;
+
   TTestExtension = class
     class function hello: string;
     class procedure mouseover(const data: string);
@@ -139,6 +144,9 @@ var
   MainForm: TMainForm;
 
 implementation
+
+var
+  pumpMessages: Integer = 0;
 
 const
   CUSTOMMENUCOMMAND_INSPECTELEMENT = 7241221;
@@ -371,7 +379,6 @@ procedure TMainForm.crmCertificateError(Sender: TObject;
   out Result: Boolean);
 begin
   // let use untrusted certificates (ex: cacert.org)
-  MainForm.Caption := sslInfo.GetIssuer.GetDisplayName;
   callback.Cont(True);
   Result := True;
 end;
@@ -415,7 +422,7 @@ begin
 end;
 
 procedure TMainForm.crmLoadStart(Sender: TObject; const browser: ICefBrowser;
-  const frame: ICefFrame);
+  const frame: ICefFrame; transitionType: TCefTransitionType);
 begin
   if IsMain(browser, frame) then
     FLoading := True;
@@ -509,9 +516,16 @@ begin
   Result := 'Hello from Delphi';
 end;
 
+{ TCustomBrowserProcessHandler }
+
+procedure TCustomBrowserProcessHandler.OnScheduleMessagePumpWork(
+  delayMs: Int64);
+begin
+  InterlockedExchange(pumpMessages, 1);
+end;
+
 initialization
   CefRemoteDebuggingPort := 9000;
   CefRenderProcessHandler := TCustomRenderProcessHandler.Create;
-  CefBrowserProcessHandler := TCefBrowserProcessHandlerOwn.Create;
 end.
 

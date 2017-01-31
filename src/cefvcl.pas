@@ -8,9 +8,8 @@
  * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
  * the specific language governing rights and limitations under the License.
  *
- * Unit owner : Henri Gourvest <hgourvest@gmail.com>
- * Web site   : http://www.progdigy.com
- * Repository : http://code.google.com/p/delphichromiumembedded/
+ * Unit owner : Henri Gourvest <hgourvest@progdigy.com>
+ * Repository : https://github.com/hgourvest/dcef3
  * Group      : http://groups.google.com/group/delphichromiumembedded
  *
  * Embarcadero Technologies, Inc is not permitted to use or redistribute
@@ -100,6 +99,7 @@ type
     FOnQuotaRequest: TOnQuotaRequest;
     FOnProtocolExecution: TOnProtocolExecution;
     FOnCertificateError: TOnCertificateError;
+    FOnSelectClientCertificate: TOnSelectClientCertificate;
     FOnPluginCrashed: TOnPluginCrashed;
     FOnRenderViewReady: TOnRenderViewReady;
     FOnRenderProcessTerminated: TOnRenderProcessTerminated;
@@ -126,7 +126,7 @@ type
     function doOnProcessMessageReceived(const browser: ICefBrowser;
       sourceProcess: TCefProcessId; const message: ICefProcessMessage): Boolean; virtual;
 
-    procedure doOnLoadStart(const browser: ICefBrowser; const frame: ICefFrame); virtual;
+    procedure doOnLoadStart(const browser: ICefBrowser; const frame: ICefFrame; transitionType: TCefTransitionType); virtual;
     procedure doOnLoadEnd(const browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer); virtual;
     procedure doOnLoadError(const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
       const errorText, failedUrl: ustring); virtual;
@@ -194,7 +194,7 @@ type
     function doOnGetResourceHandler(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest): ICefResourceHandler; virtual;
     procedure doOnResourceRedirect(const browser: ICefBrowser; const frame: ICefFrame;
-      const request: ICefRequest; var newUrl: ustring); virtual;
+      const request: ICefRequest; const response: ICefResponse; var newUrl: ustring); virtual;
     function doOnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; const response: ICefResponse): Boolean; virtual;
     function doOnGetResourceResponseFilter(const browser: ICefBrowser; const frame: ICefFrame;
@@ -211,6 +211,10 @@ type
       const url: ustring; out allowOsExecution: Boolean); virtual;
     function doOnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
       const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
+    function doOnSelectClientCertificate(
+      const browser: ICefBrowser; isProxy: Boolean; const host: ustring;
+      port: Integer; const certificates: IInterfaceList;
+      const callback: ICefSelectClientCertificateCallback): Boolean;
     procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
     procedure doOnRenderViewReady(const browser: ICefBrowser); virtual;
     procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); virtual;
@@ -235,6 +239,9 @@ type
       allowedOps: TCefDragOperations; x, y: Integer): Boolean;
     procedure doOnUpdateDragCursor(const browser: ICefBrowser; operation: TCefDragOperation);
     procedure doOnScrollOffsetChanged(const browser: ICefBrowser; x, y: Double);
+    procedure doOnImeCompositionRangeChanged(
+      const browser: ICefBrowser; const selectedRange: PCefRange;
+      characterBoundsCount: NativeUInt; const characterBounds: PCefRect);
 
     function doOnDragEnter(const browser: ICefBrowser; const dragData: ICefDragData;
       mask: TCefDragOperations): Boolean;
@@ -292,6 +299,7 @@ type
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest write FOnQuotaRequest;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
     property OnCertificateError: TOnCertificateError read FOnCertificateError write FOnCertificateError;
+    property OnSelectClientCertificate: TOnSelectClientCertificate read FOnSelectClientCertificate write FOnSelectClientCertificate;
     property OnRenderProcessTerminated: TOnRenderProcessTerminated read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
     property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed write FOnPluginCrashed;
     property OnRenderViewReady: TOnRenderViewReady read FOnRenderViewReady write FOnRenderViewReady;
@@ -371,6 +379,7 @@ type
     FOnQuotaRequest: TOnQuotaRequest;
     FOnProtocolExecution: TOnProtocolExecution;
     FOnCertificateError: TOnCertificateError;
+    FOnSelectClientCertificate: TOnSelectClientCertificate;
     FOnPluginCrashed: TOnPluginCrashed;
     FOnRenderViewReady: TOnRenderViewReady;
     FOnRenderProcessTerminated: TOnRenderProcessTerminated;
@@ -407,7 +416,7 @@ type
     function doOnProcessMessageReceived(const browser: ICefBrowser;
       sourceProcess: TCefProcessId; const message: ICefProcessMessage): Boolean; virtual;
 
-    procedure doOnLoadStart(const browser: ICefBrowser; const frame: ICefFrame); virtual;
+    procedure doOnLoadStart(const browser: ICefBrowser; const frame: ICefFrame; transitionType: TCefTransitionType); virtual;
     procedure doOnLoadEnd(const browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer); virtual;
     procedure doOnLoadError(const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
       const errorText, failedUrl: ustring); virtual;
@@ -476,7 +485,7 @@ type
     function doOnGetResourceHandler(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest): ICefResourceHandler; virtual;
     procedure doOnResourceRedirect(const browser: ICefBrowser; const frame: ICefFrame;
-      const request: ICefRequest; var newUrl: ustring); virtual;
+      const request: ICefRequest; const response: ICefResponse; var newUrl: ustring); virtual;
     function doOnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; const response: ICefResponse): Boolean; virtual;
     function doOnGetResourceResponseFilter(const browser: ICefBrowser; const frame: ICefFrame;
@@ -493,6 +502,10 @@ type
       const url: ustring; out allowOsExecution: Boolean); virtual;
     function doOnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
       const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
+    function doOnSelectClientCertificate(
+      const browser: ICefBrowser; isProxy: Boolean; const host: ustring;
+      port: Integer; const certificates: IInterfaceList;
+      const callback: ICefSelectClientCertificateCallback): Boolean;
     procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
     procedure doOnRenderViewReady(const browser: ICefBrowser); virtual;
     procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); virtual;
@@ -517,6 +530,9 @@ type
       allowedOps: TCefDragOperations; x, y: Integer): Boolean;
     procedure doOnUpdateDragCursor(const browser: ICefBrowser; operation: TCefDragOperation);
     procedure doOnScrollOffsetChanged(const browser: ICefBrowser; x, y: Double);
+    procedure doOnImeCompositionRangeChanged(
+      const browser: ICefBrowser; const selectedRange: PCefRange;
+      characterBoundsCount: NativeUInt; const characterBounds: PCefRect);
 
     function doOnDragEnter(const browser: ICefBrowser; const dragData: ICefDragData;
       mask: TCefDragOperations): Boolean;
@@ -574,6 +590,7 @@ type
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest write FOnQuotaRequest;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution write FOnProtocolExecution;
     property OnCertificateError: TOnCertificateError read FOnCertificateError write FOnCertificateError;
+    property OnSelectClientCertificate: TOnSelectClientCertificate read FOnSelectClientCertificate write FOnSelectClientCertificate;
     property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed write FOnPluginCrashed;
     property OnRenderViewReady: TOnRenderViewReady read FOnRenderViewReady write FOnRenderViewReady;
     property OnRenderProcessTerminated: TOnRenderProcessTerminated read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
@@ -670,6 +687,7 @@ type
     property OnQuotaRequest;
     property OnProtocolExecution;
     property OnCertificateError;
+    property OnSelectClientCertificate;
     property OnPluginCrashed;
     property OnRenderViewReady;
     property OnRenderProcessTerminated;
@@ -809,7 +827,7 @@ constructor TVCLClientHandler.Create(const crm: IChromiumEvents; renderer: Boole
 begin
   inherited Create(crm, renderer);
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
-  if CefInstances = 0 then
+  if (not CefExternalMessagePump) and (CefInstances = 0) then
     CefTimer := SetTimer(0, 0, 10, @TimerProc);
   InterlockedIncrement(CefInstances);
 {$ENDIF}
@@ -819,8 +837,11 @@ destructor TVCLClientHandler.Destroy;
 begin
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
   InterlockedDecrement(CefInstances);
-  if CefInstances = 0 then
-    KillTimer(0, CefTimer);
+  if (CefInstances = 0) and (CefTimer <> 0) then
+  begin
+     KillTimer(0, CefTimer);
+     CefTimer := 0;
+  end;
 {$ENDIF}
   inherited;
 end;
@@ -1297,6 +1318,13 @@ begin
     FOnGotFocus(Self, browser)
 end;
 
+procedure TCustomChromium.doOnImeCompositionRangeChanged(
+  const browser: ICefBrowser; const selectedRange: PCefRange;
+  characterBoundsCount: NativeUInt; const characterBounds: PCefRect);
+begin
+
+end;
+
 function TCustomChromium.doOnJsdialog(const browser: ICefBrowser;
   const originUrl: ustring; dialogType: TCefJsDialogType;
   const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
@@ -1339,10 +1367,10 @@ begin
 end;
 
 procedure TCustomChromium.doOnLoadStart(const browser: ICefBrowser;
-  const frame: ICefFrame);
+  const frame: ICefFrame; transitionType: TCefTransitionType);
 begin
   if Assigned(FOnLoadStart) then
-    FOnLoadStart(Self, browser, frame);
+    FOnLoadStart(Self, browser, frame, transitionType);
 end;
 
 function TCustomChromium.doOnOpenUrlFromTab(const browser: ICefBrowser;
@@ -1451,10 +1479,11 @@ begin
 end;
 
 procedure TCustomChromium.doOnResourceRedirect(const browser: ICefBrowser;
-  const frame: ICefFrame; const request: ICefRequest; var newUrl: ustring);
+  const frame: ICefFrame; const request: ICefRequest;
+  const response: ICefResponse; var newUrl: ustring);
 begin
   if Assigned(FOnResourceRedirect) then
-    FOnResourceRedirect(Self, browser, frame, request, newUrl);
+    FOnResourceRedirect(Self, browser, frame, request, response, newUrl);
 end;
 
 function TCustomChromium.doOnResourceResponse(const browser: ICefBrowser;
@@ -1469,6 +1498,16 @@ end;
 procedure TCustomChromium.doOnScrollOffsetChanged(const browser: ICefBrowser; x, y: Double);
 begin
 
+end;
+
+function TCustomChromium.doOnSelectClientCertificate(const browser: ICefBrowser;
+  isProxy: Boolean; const host: ustring; port: Integer;
+  const certificates: IInterfaceList;
+  const callback: ICefSelectClientCertificateCallback): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnSelectClientCertificate) then
+     FOnSelectClientCertificate(Self, browser, isProxy, host, port, certificates, callback, Result);
 end;
 
 function TCustomChromium.doOnSetFocus(const browser: ICefBrowser;
@@ -1927,6 +1966,13 @@ begin
     FOnGotFocus(Self, browser)
 end;
 
+procedure TCustomChromiumOSR.doOnImeCompositionRangeChanged(
+  const browser: ICefBrowser; const selectedRange: PCefRange;
+  characterBoundsCount: NativeUInt; const characterBounds: PCefRect);
+begin
+
+end;
+
 function TCustomChromiumOSR.doOnJsdialog(const browser: ICefBrowser;
   const originUrl: ustring; dialogType: TCefJsDialogType;
   const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
@@ -1969,10 +2015,10 @@ begin
 end;
 
 procedure TCustomChromiumOSR.doOnLoadStart(const browser: ICefBrowser;
-  const frame: ICefFrame);
+  const frame: ICefFrame; transitionType: TCefTransitionType);
 begin
   if Assigned(FOnLoadStart) then
-    FOnLoadStart(Self, browser, frame);
+    FOnLoadStart(Self, browser, frame, transitionType);
 end;
 
 function TCustomChromiumOSR.doOnOpenUrlFromTab(const browser: ICefBrowser;
@@ -2084,10 +2130,11 @@ begin
 end;
 
 procedure TCustomChromiumOSR.doOnResourceRedirect(const browser: ICefBrowser;
-  const frame: ICefFrame; const request: ICefRequest; var newUrl: ustring);
+  const frame: ICefFrame; const request: ICefRequest;
+  const response: ICefResponse; var newUrl: ustring);
 begin
   if Assigned(FOnResourceRedirect) then
-    FOnResourceRedirect(Self, browser, frame, request, newUrl);
+    FOnResourceRedirect(Self, browser, frame, request, response, newUrl);
 end;
 
 function TCustomChromiumOSR.doOnResourceResponse(const browser: ICefBrowser;
@@ -2104,6 +2151,16 @@ procedure TCustomChromiumOSR.doOnScrollOffsetChanged(
 begin
   if Assigned(FOnScrollOffsetChanged) then
     FOnScrollOffsetChanged(Self, browser, x, y);
+end;
+
+function TCustomChromiumOSR.doOnSelectClientCertificate(
+  const browser: ICefBrowser; isProxy: Boolean; const host: ustring;
+  port: Integer; const certificates: IInterfaceList;
+  const callback: ICefSelectClientCertificateCallback): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnSelectClientCertificate) then
+     FOnSelectClientCertificate(Self, browser, isProxy, host, port, certificates, callback, Result);
 end;
 
 function TCustomChromiumOSR.doOnSetFocus(const browser: ICefBrowser;

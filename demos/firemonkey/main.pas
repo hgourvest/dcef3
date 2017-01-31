@@ -23,14 +23,14 @@ type
     procedure btReloadClick(Sender: TObject);
     procedure crmAddressChange(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; const url: ustring);
-    procedure crmLoadStart(Sender: TObject; const browser: ICefBrowser;
-      const frame: ICefFrame);
     procedure crmLoadEnd(Sender: TObject; const browser: ICefBrowser;
       const frame: ICefFrame; httpStatusCode: Integer);
     procedure crmTitleChange(Sender: TObject; const browser: ICefBrowser;
       const title: ustring);
     procedure edAddressKeyDown(Sender: TObject; var Key: Word;
       var KeyChar: Char; Shift: TShiftState);
+    procedure crmLoadStart(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; transitionType: TCefTransitionType);
   private
     FLoading: Boolean;
   public
@@ -94,7 +94,7 @@ begin
 end;
 
 procedure TMainForm.crmLoadStart(Sender: TObject; const browser: ICefBrowser;
-  const frame: ICefFrame);
+  const frame: ICefFrame; transitionType: TCefTransitionType);
 begin
   if (browser <> nil) and ((frame = nil) or (frame.IsMain)) then
   begin

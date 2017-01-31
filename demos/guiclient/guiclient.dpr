@@ -15,9 +15,15 @@ begin
   registrar.AddCustomScheme('local', True, True, False);
 end;
 
+procedure CustomCommandLine(const processType: ustring; const commandLine: ICefCommandLine);
+begin
+  commandLine.AppendSwitch('--enable-system-flash');
+end;
+
 begin
   CefCache := 'cache';
   CefOnRegisterCustomSchemes := RegisterSchemes;
+  CefOnBeforeCommandLineProcessing := CustomCommandLine;
   CefSingleProcess := False;
   if not CefLoadLibDefault then
     Exit;

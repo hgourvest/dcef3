@@ -42,7 +42,7 @@ type
 
   TCustomLoad = class(TCefLoadHandlerOwn)
   protected
-    procedure OnLoadStart(const browser: ICefBrowser; const frame: ICefFrame); override;
+    procedure OnLoadStart(const browser: ICefBrowser; const frame: ICefFrame; transitionType: TCefTransitionType); override;
     procedure OnLoadEnd(const browser: ICefBrowser; const frame: ICefFrame;
       httpStatusCode: Integer); override;
   end;
@@ -332,7 +332,7 @@ begin
 end;
 
 procedure TCustomLoad.OnLoadStart(const browser: ICefBrowser;
-  const frame: ICefFrame);
+  const frame: ICefFrame; transitionType: TCefTransitionType);
 begin
   if browser.Identifier = browserId then
   begin
@@ -363,6 +363,11 @@ begin
   registrar.AddCustomScheme('local', True, True, False);
 end;
 
+procedure CustomCommandLine(const processType: ustring; const commandLine: ICefCommandLine);
+begin
+  commandLine.AppendSwitch('--enable-system-flash');
+end;
+
 var
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
   Msg      : TMsg;
@@ -374,6 +379,8 @@ begin
   //navigateto := 'local://c:\';
   CefLogSeverity := LOGSEVERITY_WARNING;
   CefOnRegisterCustomSchemes := RegisterSchemes;
+
+  CefOnBeforeCommandLineProcessing := CustomCommandLine;
 
   // multi process
   CefSingleProcess := False;
