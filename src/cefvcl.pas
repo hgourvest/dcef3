@@ -1057,11 +1057,11 @@ begin
       if (csDesigning in ComponentState) or (FBrowser = nil) then
         inherited WndProc(Message);
     CM_WANTSPECIALKEY:
-      if not (TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN, VK_RETURN, VK_ESCAPE]) then
+      if not (TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN, VK_RETURN, VK_ESCAPE, VK_TAB]) then
         Message.Result := 1 else
         inherited WndProc(Message);
     WM_GETDLGCODE:
-      Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS;
+      Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS or DLGC_WANTTAB;
   else
     inherited WndProc(Message);
   end;
@@ -2293,11 +2293,11 @@ begin
           inherited WndProc(Message);
       end;
     CM_WANTSPECIALKEY:
-      if not (TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN, VK_RETURN, VK_ESCAPE]) then
+      if not (TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN, VK_RETURN, VK_ESCAPE, VK_TAB]) then
         Message.Result := 1 else
         inherited WndProc(Message);
     WM_GETDLGCODE:
-      Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS;
+      Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS or DLGC_WANTTAB;
   else
     inherited WndProc(Message);
   end;
