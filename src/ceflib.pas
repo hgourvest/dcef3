@@ -323,10 +323,19 @@ type
     no_sandbox: Integer;
 
     // The path to a separate executable that will be launched for sub-processes.
-    // By default the browser process executable is used. See the comments on
-    // CefExecuteProcess() for details. Also configurable using the
-    // "browser-subprocess-path" command-line switch.
+    // If this value is empty on Windows or Linux then the main process executable
+    // will be used. If this value is empty on macOS then a helper executable must
+    // exist at "Contents/Frameworks/<app> Helper.app/Contents/MacOS/<app> Helper"
+    // in the top-level app bundle. See the comments on CefExecuteProcess() for
+    // details. Also configurable using the "browser-subprocess-path" command-line
+    // switch.
     browser_subprocess_path: TCefString;
+
+    // The path to the CEF framework directory on macOS. If this value is empty
+    // then the framework must exist at "Contents/Frameworks/Chromium Embedded
+    // Framework.framework" in the top-level app bundle. Also configurable using
+    // the "framework-dir-path" command-line switch.
+    framework_dir_path: TCefString;
 
     // Set to true (1) to have the browser process message loop run in a separate
     // thread. If false (0) than the CefDoMessageLoopWork() function must be
@@ -635,10 +644,6 @@ type
     // be enabled. Also configurable using the "disable-javascript-dom-paste"
     // command-line switch.
     javascript_dom_paste: TCefState;
-
-    // Controls whether the caret position will be drawn. Also configurable using
-    // the "enable-caret-browsing" command-line switch.
-    caret_browsing: TCefState;
 
     // Controls whether any plugins will be loaded. Also configurable using the
     // "disable-plugins" command-line switch.
@@ -7076,22 +7081,35 @@ type
     // filter will not be installed if this function returns false (0).
     init_filter: function(self: PCefResponseFilter): Integer; stdcall;
 
-    // Called to filter a chunk of data. |data_in| is the input buffer containing
-    // |data_in_size| bytes of pre-filter data (|data_in| will be NULL if
-    // |data_in_size| is zero). |data_out| is the output buffer that can accept up
-    // to |data_out_size| bytes of filtered output data. Set |data_in_read| to the
-    // number of bytes that were read from |data_in|. Set |data_out_written| to
-    // the number of bytes that were written into |data_out|. If some or all of
-    // the pre-filter data was read successfully but more data is needed in order
-    // to continue filtering (filtered output is pending) return
-    // RESPONSE_FILTER_NEED_MORE_DATA. If some or all of the pre-filter data was
-    // read successfully and all available filtered output has been written return
-    // RESPONSE_FILTER_DONE. If an error occurs during filtering return
-    // RESPONSE_FILTER_ERROR. This function will be called repeatedly until there
-    // is no more data to filter (resource response is complete), |data_in_read|
-    // matches |data_in_size| (all available pre-filter bytes have been read), and
-    // the function returns RESPONSE_FILTER_DONE or RESPONSE_FILTER_ERROR. Do not
-    // keep a reference to the buffers passed to this function.
+    // Called to filter a chunk of data. Expected usage is as follows:
+    //
+    //  A. Read input data from |data_in| and set |data_in_read| to the number of
+    //     bytes that were read up to a maximum of |data_in_size|. |data_in| will
+    //     be NULL if |data_in_size| is zero.
+    //  B. Write filtered output data to |data_out| and set |data_out_written| to
+    //     the number of bytes that were written up to a maximum of
+    //     |data_out_size|. If no output data was written then all data must be
+    //     read from |data_in| (user must set |data_in_read| = |data_in_size|).
+    //  C. Return RESPONSE_FILTER_DONE if all output data was written or
+    //     RESPONSE_FILTER_NEED_MORE_DATA if output data is still pending.
+    //
+    // This function will be called repeatedly until the input buffer has been
+    // fully read (user sets |data_in_read| = |data_in_size|) and there is no more
+    // input data to filter (the resource response is complete). This function may
+    // then be called an additional time with an NULL input buffer if the user
+    // filled the output buffer (set |data_out_written| = |data_out_size|) and
+    // returned RESPONSE_FILTER_NEED_MORE_DATA to indicate that output data is
+    // still pending.
+    //
+    // Calls to this function will stop when one of the following conditions is
+    // met:
+    //
+    //  A. There is no more input data to filter (the resource response is
+    //     complete) and the user sets |data_out_written| = 0 or returns
+    //     RESPONSE_FILTER_DONE to indicate that all data has been written, or;
+    //  B. The user returns RESPONSE_FILTER_ERROR to indicate an error.
+    //
+    // Do not keep a reference to the buffers passed to this function.
     filter: function(self: PCefResponseFilter; data_in: Pointer; data_in_size, data_in_read: NativeUInt;
         data_out: Pointer; data_out_size, data_out_written: NativeUInt): TCefResponseFilterStatus; stdcall;
   end;
@@ -10977,6 +10995,7 @@ function CefLoadLib(
   const Locale: ustring = '';
   const LogFile: ustring = '';
   const BrowserSubprocessPath: ustring = '';
+  const FrameworkDirPath: ustring = '';
   LogSeverity: TCefLogSeverity = LOGSEVERITY_DISABLE;
   JavaScriptFlags: ustring = '';
   ResourcesDirPath: ustring = '';
@@ -11110,6 +11129,7 @@ var
   CefSingleProcess: Boolean = True;
   CefNoSandbox: Boolean = False;
   CefBrowserSubprocessPath: ustring = '';
+  CefFrameworkDirPath: ustring = '';
   CefCommandLineArgsDisabled: Boolean = False;
   CefRemoteDebuggingPort: Integer = 0;
   CefGetDataResource: TGetDataResource = nil;
@@ -12059,6 +12079,9 @@ var
   //           information; default to "CEF">
   //  ExternalHandler=<Windows only; Name of the external handler exe to use
   //                   instead of re-launching the main exe; default to empty>
+  //  BrowserCrashForwardingEnabled=<macOS only; True if browser process crashes
+  //                                 should be forwarded to the system crash
+  //                                 reporter; default to false>
   //  ServerURL=<crash server URL; default to empty>
   //  RateLimitEnabled=<True if uploads should be rate limited; default to true>
   //  MaxUploadsPerDay=<Max uploads per 24 hours, used if rate limit is enabled;
@@ -12089,6 +12112,12 @@ var
   // exe. The value can be an absolute path or a path relative to the main exe
   // directory. On Linux the CefSettings.browser_subprocess_path value will be
   // used. On macOS the existing subprocess app bundle will be used.
+  //
+  // If "BrowserCrashForwardingEnabled" is set to true (1) on macOS then browser
+  // process crashes will be forwarded to the system crash reporter. This results
+  // in the crash UI dialog being displayed to the user and crash reports being
+  // logged under "~/Library/Logs/DiagnosticReports". Forwarding of crash reports
+  // from non-browser processes and Debug builds is always disabled.
   //
   // If "ServerURL" is set then crashes will be uploaded as a multi-part POST
   // request to the specified URL. Otherwise, reports will only be stored locally
@@ -12290,7 +12319,7 @@ function CefLoadLibDefault: Boolean;
 begin
   if LibHandle = 0 then
     Result := CefLoadLib(CefCache, CefUserDataPath, CefUserAgent, CefProductVersion,
-      CefLocale, CefLogFile, CefBrowserSubprocessPath, CefLogSeverity, CefJavaScriptFlags,
+      CefLocale, CefLogFile, CefBrowserSubprocessPath, CefFrameworkDirPath, CefLogSeverity, CefJavaScriptFlags,
       CefResourcesDirPath, CefLocalesDirPath, CefSingleProcess, CefNoSandbox,
       CefCommandLineArgsDisabled, CefPackLoadingDisabled, CefRemoteDebuggingPort,
       CefUncaughtExceptionStackSize, CefContextSafetyImplementation,
@@ -12300,9 +12329,10 @@ begin
     Result := True;
 end;
 
-function CefLoadLib(const Cache, UserDataPath, UserAgent, ProductVersion, Locale, LogFile, BrowserSubprocessPath: ustring;
-  LogSeverity: TCefLogSeverity; JavaScriptFlags, ResourcesDirPath, LocalesDirPath: ustring;
-  SingleProcess, NoSandbox, CommandLineArgsDisabled, PackLoadingDisabled: Boolean; RemoteDebuggingPort: Integer;
+function CefLoadLib(const Cache, UserDataPath, UserAgent, ProductVersion, Locale, LogFile,
+  BrowserSubprocessPath, FrameworkDirPath: ustring; LogSeverity: TCefLogSeverity;
+  JavaScriptFlags, ResourcesDirPath, LocalesDirPath: ustring; SingleProcess, NoSandbox,
+  CommandLineArgsDisabled, PackLoadingDisabled: Boolean; RemoteDebuggingPort: Integer;
   UncaughtExceptionStackSize: Integer; ContextSafetyImplementation: Integer;
   PersistSessionCookies: Boolean; IgnoreCertificateErrors: Boolean; EnableNetSecurityExpiration: Boolean;
   BackgroundColor: TCefColor; const AcceptLanguageList: ustring; WindowsSandboxInfo: Pointer;
@@ -12748,6 +12778,7 @@ begin
     settings.user_data_path := CefString(UserDataPath);
     settings.persist_session_cookies := Ord(PersistSessionCookies);
     settings.browser_subprocess_path := CefString(BrowserSubprocessPath);
+    settings.framework_dir_path := CefString(FrameworkDirPath);
     settings.command_line_args_disabled := Ord(CommandLineArgsDisabled);
     settings.user_agent := cefstring(UserAgent);
     settings.product_version := CefString(ProductVersion);

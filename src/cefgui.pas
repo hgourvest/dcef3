@@ -173,7 +173,6 @@ type
     FJavascriptCloseWindows: TCefState;
     FJavascriptAccessClipboard: TCefState;
     FJavascriptDomPaste: TCefState;
-    FCaretBrowsing: TCefState;
     FPlugins: TCefState;
     FUniversalAccessFromFileUrls: TCefState;
     FFileAccessFromFileUrls: TCefState;
@@ -196,7 +195,6 @@ type
     property JavascriptCloseWindows: TCefState read FJavascriptCloseWindows write FJavascriptCloseWindows default STATE_DEFAULT;
     property JavascriptAccessClipboard: TCefState read FJavascriptAccessClipboard write FJavascriptAccessClipboard default STATE_DEFAULT;
     property JavascriptDomPaste: TCefState read FJavascriptDomPaste write FJavascriptDomPaste default STATE_DEFAULT;
-    property CaretBrowsing: TCefState read FCaretBrowsing write FCaretBrowsing default STATE_DEFAULT;
     property Plugins: TCefState read FPlugins write FPlugins default STATE_DEFAULT;
     property UniversalAccessFromFileUrls: TCefState read FUniversalAccessFromFileUrls write FUniversalAccessFromFileUrls default STATE_DEFAULT;
     property FileAccessFromFileUrls: TCefState read FFileAccessFromFileUrls write FFileAccessFromFileUrls default STATE_DEFAULT;
@@ -1309,7 +1307,6 @@ begin
   FJavascriptCloseWindows := STATE_DEFAULT;
   FJavascriptAccessClipboard := STATE_DEFAULT;
   FJavascriptDomPaste := STATE_DEFAULT;
-  FCaretBrowsing := STATE_DEFAULT;
   FPlugins := STATE_DEFAULT;
   FUniversalAccessFromFileUrls := STATE_DEFAULT;
   FFileAccessFromFileUrls := STATE_DEFAULT;

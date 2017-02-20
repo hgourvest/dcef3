@@ -947,7 +947,6 @@ begin
   settings.javascript_close_windows := FOptions.JavascriptCloseWindows;
   settings.javascript_access_clipboard := FOptions.JavascriptAccessClipboard;
   settings.javascript_dom_paste := FOptions.JavascriptDomPaste;
-  settings.caret_browsing := FOptions.CaretBrowsing;
   settings.plugins := FOptions.Plugins;
   settings.universal_access_from_file_urls := FOptions.UniversalAccessFromFileUrls;
   settings.file_access_from_file_urls := FOptions.FileAccessFromFileUrls;
@@ -1659,7 +1658,6 @@ begin
   settings.javascript_close_windows := FOptions.JavascriptCloseWindows;
   settings.javascript_access_clipboard := FOptions.JavascriptAccessClipboard;
   settings.javascript_dom_paste := FOptions.JavascriptDomPaste;
-  settings.caret_browsing := FOptions.CaretBrowsing;
   settings.plugins := FOptions.Plugins;
   settings.universal_access_from_file_urls := FOptions.UniversalAccessFromFileUrls;
   settings.file_access_from_file_urls := FOptions.FileAccessFromFileUrls;
